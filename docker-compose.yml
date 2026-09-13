@@ -26,7 +26,7 @@ services:
       PORT: '3000'
       # 前端在 iroha.chat，后端在 api.iroha.chat
       WEB_APP_URL: https://iroha.chat
-      CORS_ORIGINS: https://iroha.chat,https://www.iroha.chat
+      CORS_ORIGINS: https://iroha.chat,https://www.iroha.chat,https://*.vercel.app
     # Caddy 已反代 api.iroha.chat -> 127.0.0.1:3000，后端独占该端口
     ports:
       - '127.0.0.1:3000:3000'
