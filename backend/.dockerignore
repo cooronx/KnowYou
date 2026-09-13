@@ -1,0 +1,13 @@
+# 依赖与构建产物
+node_modules
+dist
+
+# 本地环境与密钥
+.env
+.env.*
+!.env.example
+
+# 其他
+*.log
+*.tsbuildinfo
+tests
