@@ -3,6 +3,7 @@
 import {useCallback, useEffect, useState} from 'react'
 import {useParams, useRouter} from 'next/navigation'
 import type {Room} from '@/lib/room-store'
+import {story} from '@/lib/story'
 
 export default function ReportPage() {
   const {code} = useParams<{code: string}>()
@@ -85,12 +86,15 @@ export default function ReportPage() {
           <article key={record.round}>
             <h3>第 {record.round} 回合</h3>
             <ul>
-              {record.entries.map((entry) => (
-                <li key={entry.playerId}>
-                  {entry.name}（角色 {entry.role}）选择了「{entry.choiceTitle}」
-                  {entry.text && `，${entry.text}`}
-                </li>
-              ))}
+              {record.entries.map((entry) => {
+                const character = story.characters.find((item) => item.id === entry.role)
+                return (
+                  <li key={entry.playerId}>
+                    {entry.name}（{character?.name ?? `角色 ${entry.role}`}）选择了「{entry.choiceTitle}」
+                    {entry.text && `，${entry.text}`}
+                  </li>
+                )
+              })}
             </ul>
             <p>{record.narration}</p>
           </article>

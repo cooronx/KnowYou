@@ -54,18 +54,35 @@ export default function RoomPage() {
   if (!room) return <main><p>{error || '加载中…'}</p></main>
 
   const submitted = room.submissions[playerId]
+  const me = room.players[playerId]
+  const myCharacter = story.characters.find((character) => character.id === me?.role)
 
   return (
     <main>
       <h1>{story.title}</h1>
       <p>游客演示版 · 固定测试故事 · 测试房间，重启后失效</p>
       <ul>
-        {room.playerIds.map((id) => (
-          <li key={id}>
-            {room.players[id].name}（角色 {room.players[id].role}）
-          </li>
-        ))}
+        {room.playerIds.map((id) => {
+          const player = room.players[id]
+          const character = story.characters.find((item) => item.id === player.role)
+          return (
+            <li key={id}>
+              {player.name}：{character?.name}
+              {id === playerId && '（你）'}
+            </li>
+          )
+        })}
       </ul>
+
+      {me && myCharacter ? (
+        <section>
+          <h2>你扮演：{myCharacter.name}</h2>
+          <p>目标：{myCharacter.goal}</p>
+          <p>性格：{myCharacter.traits}</p>
+        </section>
+      ) : (
+        <p role="alert">当前浏览器没有本房间的玩家身份，请回首页重新加入。</p>
+      )}
 
       {room.state === 'waiting' && (
         <section>
@@ -76,11 +93,15 @@ export default function RoomPage() {
           <p>{story.opening}</p>
           <h3>角色卡</h3>
           <ul>
-            {story.characters.map((character) => (
-              <li key={character.id}>
-                {character.name}：目标「{character.goal}」，性格：{character.traits}
-              </li>
-            ))}
+            {story.characters.map((character) => {
+              const ownerId = room.playerIds.find((id) => room.players[id].role === character.id)
+              return (
+                <li key={character.id}>
+                  {character.name}：目标「{character.goal}」，性格：{character.traits}
+                  {ownerId ? `（${room.players[ownerId].name} 扮演）` : '（待玩家加入）'}
+                </li>
+              )
+            })}
           </ul>
           <button disabled={room.playerIds.length !== 2} onClick={() => post('/start')}>
             开始游戏
