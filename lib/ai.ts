@@ -35,19 +35,53 @@ async function chatJson(messages: ChatMessage[]): Promise<unknown> {
       signal: controller.signal,
     })
   } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') throw new Error('AI 请求超时，请重试')
-    throw new Error('AI 请求失败，请检查网络或接口地址')
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.error('[ai] 请求超时')
+      throw new Error('AI 请求超时，请重试')
+    }
+    console.error('[ai] 请求失败：', error)
+    const code = error instanceof Error ? (error.cause as {code?: string} | undefined)?.code : undefined
+    throw new Error(
+      code ? `AI 请求失败（网络错误 ${code}），请检查网络或接口地址` : 'AI 请求失败，请检查网络或接口地址',
+    )
   } finally {
     clearTimeout(timer)
   }
-  if (!response.ok) throw new Error(`AI 请求失败（HTTP ${response.status}），请重试`)
+  if (!response.ok) {
+    const detail = (await response.text().catch(() => '')).trim().slice(0, 200)
+    console.error(`[ai] HTTP ${response.status}：${detail}`)
+    throw new Error(
+      detail
+        ? `AI 请求失败（HTTP ${response.status}）：${detail}`
+        : `AI 请求失败（HTTP ${response.status}），请重试`,
+    )
+  }
   const data = await response.json().catch(() => null)
-  const content = (data as {choices?: {message?: {content?: unknown}}[]} | null)?.choices?.[0]?.message
-    ?.content
-  if (typeof content !== 'string' || !content.trim()) throw new Error('AI 未返回内容，请重试')
+  const rawContent = (
+    data as {choices?: {message?: {content?: unknown}}[]} | null
+  )?.choices?.[0]?.message?.content
+  const content = typeof rawContent === 'string'
+    ? rawContent
+    : Array.isArray(rawContent)
+      ? rawContent
+          .map((part) => (typeof (part as {text?: unknown})?.text === 'string' ? (part as {text: string}).text : ''))
+          .join('')
+      : ''
+  if (!content.trim()) throw new Error('AI 未返回内容，请重试')
+  return parseJsonContent(content)
+}
+
+function parseJsonContent(content: string): unknown {
+  // 部分 OpenAI 兼容服务即使开启 JSON 模式也会用 Markdown 代码块包裹返回
+  const normalized = content
+    .trim()
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```$/, '')
+    .trim()
   try {
-    return JSON.parse(content)
+    return JSON.parse(normalized)
   } catch {
+    console.error('[ai] 返回值不是合法 JSON：', content.slice(0, 300))
     throw new Error('AI 返回不是合法 JSON，请重试')
   }
 }
