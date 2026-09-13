@@ -41,3 +41,6 @@ Thumbs.db
 
 #ai相关的一坨实施文档
 zhihu-hackathon/
+.agents
+.opencode.json
+skills-lock.json
