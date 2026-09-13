@@ -15,5 +15,30 @@ services:
       timeout: 5s
       retries: 10
 
+  backend:
+    build: ./backend
+    container_name: knowyou-backend
+    restart: unless-stopped
+    env_file: ./backend/.env
+    environment:
+      # 容器内通过服务名访问 postgres，覆盖 .env 里的本地地址
+      DATABASE_URL: postgresql://knowyou:knowyou@postgres:5432/knowyou?schema=public
+      PORT: '3000'
+      WEB_APP_URL: https://api.iroha.chat
+      CORS_ORIGINS: https://api.iroha.chat
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build: ./web
+    container_name: knowyou-web
+    restart: unless-stopped
+    # Caddy 仍反代到 127.0.0.1:3000，由 nginx 托管前端并转发 /api
+    ports:
+      - '127.0.0.1:3000:3000'
+    depends_on:
+      - backend
+
 volumes:
   knowyou-pgdata:
