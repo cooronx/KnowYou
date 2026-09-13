@@ -29,6 +29,7 @@ dist/
 build/
 .next/
 *.log
+*.tsbuildinfo
 
 # OS and editor junk
 .DS_Store
