@@ -1,1 +1,15 @@
-import {NextResponse} from 'next/server';import {getRoom,join} from '@/lib/room-store';export async function POST(req:Request,{params}:{params:Promise<{code:string}>}){try{const r=getRoom((await params).code);if(!r)throw Error('房间不存在');const {name}=await req.json();const x=join(r,name||'游客');return NextResponse.json({playerId:x.playerId})}catch(e){return NextResponse.json({error:(e as Error).message},{status:400})}}
+import {NextResponse} from 'next/server'
+import {getRoom, join} from '@/lib/room-store'
+
+export async function POST(request: Request, {params}: {params: Promise<{code: string}>}) {
+  try {
+    const room = getRoom((await params).code)
+    if (!room) throw new Error('房间不存在')
+    const body = await request.json().catch(() => ({}))
+    const name = typeof body.name === 'string' ? body.name : ''
+    const {playerId} = join(room, name)
+    return NextResponse.json({code: room.code, playerId})
+  } catch (error) {
+    return NextResponse.json({error: error instanceof Error ? error.message : '加入失败'}, {status: 400})
+  }
+}
