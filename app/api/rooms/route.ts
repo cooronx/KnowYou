@@ -1,0 +1,1 @@
+import {NextResponse} from 'next/server';import {create} from '@/lib/room-store';export async function POST(req:Request){const {name}=await req.json();const x=create(name||'游客');return NextResponse.json({code:x.room.code,playerId:x.playerId})}

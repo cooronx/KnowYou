@@ -1,0 +1,1 @@
+import {NextResponse} from 'next/server';import {getRoom,start} from '@/lib/room-store';export async function POST(_:Request,{params}:{params:{code:string}}){const r=getRoom(params.code);if(!r)return NextResponse.json({error:'不存在'},{status:404});start(r);return NextResponse.json(r)}
