@@ -28,6 +28,11 @@ local_rev="$(git rev-parse HEAD)"
 remote_rev="$(git rev-parse "origin/$BRANCH")"
 [ "$local_rev" = "$remote_rev" ] && exit 0
 
+# 仅在远端领先（可快进）时部署；本地领先或分叉说明有未推送提交，跳过
+if ! git merge-base --is-ancestor "$local_rev" "$remote_rev"; then
+  exit 0
+fi
+
 # 服务器上有未提交改动时不覆盖，留给人处理
 if ! git diff --quiet || ! git diff --cached --quiet; then
   log "skip: working tree dirty (local=$local_rev remote=$remote_rev)"
