@@ -104,22 +104,23 @@ function freshRoom(code: string): Room {
   }
 }
 
-export function join(room: Room, name: string): {room: Room; playerId: string} {
+export function join(room: Room): {room: Room; playerId: string} {
   if (room.state !== 'waiting' || room.playerIds.length >= 2) throw new Error('房间已满')
   const playerId = crypto.randomUUID()
   room.playerIds.push(playerId)
-  room.players[playerId] = {name: name.trim() || '游客', role: room.playerIds.length === 1 ? 'a' : 'b'}
+  const isFirst = room.playerIds.length === 1
+  room.players[playerId] = {name: isFirst ? '用户A' : '用户B', role: isFirst ? 'a' : 'b'}
   return {room, playerId}
 }
 
-export function create(name: string): {room: Room; playerId: string} {
+export function create(): {room: Room; playerId: string} {
   let room = rooms.get(ROOM_CODE)
   // 固定测试房间：已结束的房间允许重新开一局，避免“再来一局”被旧状态卡住
   if (!room || room.state === 'finished') {
     room = freshRoom(ROOM_CODE)
     rooms.set(ROOM_CODE, room)
   }
-  return join(room, name)
+  return join(room)
 }
 
 function applyScene(room: Room, scene: SceneResult): void {

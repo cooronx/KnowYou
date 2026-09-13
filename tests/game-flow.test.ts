@@ -59,8 +59,8 @@ function makeAi(overrides: Partial<GameAi> = {}): GameAi {
 
 function newRoom() {
   rooms.clear()
-  const first = create('甲')
-  const second = join(first.room, '乙')
+  const first = create()
+  const second = join(first.room)
   return {room: first.room, firstId: first.playerId, secondId: second.playerId}
 }
 
@@ -68,6 +68,8 @@ test('完整流程：创建、加入、双方提交、推进到结束并生成�
   const ai = makeAi()
   const {room, firstId, secondId} = newRoom()
   assert.equal(room.code, ROOM_CODE)
+  assert.equal(room.players[firstId].name, '用户A')
+  assert.equal(room.players[secondId].name, '用户B')
 
   await startGame(room, ai)
   assert.equal(room.state, 'playing')

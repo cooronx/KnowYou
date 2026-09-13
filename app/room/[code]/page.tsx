@@ -87,7 +87,7 @@ export default function RoomPage() {
       {room.state === 'waiting' && (
         <section>
           <h2>等待玩家（{room.playerIds.length}/2）</h2>
-          {room.playerIds.length < 2 && <p>把房间码 {room.code} 发给同伴加入。</p>}
+          {room.playerIds.length < 2 && <p>让同伴打开同一页面点「加入房间」。</p>}
           <p>{story.summary}</p>
           <h3>开场</h3>
           <p>{story.opening}</p>
