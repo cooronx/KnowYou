@@ -1,7 +1,7 @@
 import type {RoomRepository} from './room-repository.ts'
 import {freshRoom, type Room} from './room-types.ts'
 
-/** 测试和本地调试用的内存实现，语义与 rdb 实现保持一致 */
+/** 测试和本地调试用的内存实现，语义与 Prisma 实现保持一致 */
 export function createMemoryRoomRepository(): RoomRepository {
   const rooms = new Map<string, Room>()
   return {
@@ -17,7 +17,7 @@ export function createMemoryRoomRepository(): RoomRepository {
     async withLock(code, mutate) {
       const room = rooms.get(code)
       if (!room) throw new Error('房间不存在')
-      // 先在副本上改，成功才提交：mutate 抛错时丢弃改动，与 rdb 的原子提交语义一致
+      // 先在副本上改，成功才提交：mutate 抛错时丢弃改动，与 Prisma 事务回滚语义一致
       const draft = structuredClone(room)
       // mutate 是同步函数，Node 单线程下天然独占，无需额外排队
       const result = mutate(draft)

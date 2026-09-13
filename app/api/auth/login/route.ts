@@ -1,5 +1,6 @@
 import {NextResponse} from 'next/server'
 import {STATE_COOKIE, STATE_MAX_AGE_SECONDS, createOauthState, sessionCookieOptions} from '@/lib/auth-session'
+import {getPrisma} from '@/lib/prisma'
 import {buildAuthorizeUrl, oauthConfig} from '@/lib/zhihu-oauth'
 
 export async function GET() {
@@ -7,7 +8,7 @@ export async function GET() {
   let state: string
   try {
     const config = oauthConfig()
-    state = await createOauthState()
+    state = await createOauthState(getPrisma())
     authorizeUrl = buildAuthorizeUrl(config, state)
   } catch (error) {
     // 配置缺失属于部署问题，返回消息但不含凭证内容

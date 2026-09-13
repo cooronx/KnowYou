@@ -5,10 +5,18 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "test": "node --env-file-if-exists=.env --test \"tests/**/*.test.ts\""
+    "test": "node --env-file-if-exists=.env --test \"tests/**/*.test.ts\"",
+    "postinstall": "prisma generate",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:studio": "prisma studio"
   },
   "dependencies": {
-    "@cloudbase/node-sdk": "^3.18.3",
+    "@prisma/adapter-pg": "7.10.0",
+    "@prisma/client": "7.10.0",
+    "dotenv": "17.4.2",
     "next": "latest",
     "react": "latest",
     "react-dom": "latest"
@@ -19,6 +27,7 @@
     "@types/react-dom": "latest",
     "autoprefixer": "latest",
     "postcss": "latest",
+    "prisma": "7.10.0",
     "tailwindcss": "latest",
     "typescript": "latest"
   }

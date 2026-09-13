@@ -1,10 +1,10 @@
 import type {Room} from './room-types.ts'
 
 /**
- * 房间持久化边界。规则逻辑只依赖这个接口，测试注入内存实现，生产注入 rdb 实现。
+ * 房间持久化边界。规则逻辑只依赖这个接口，测试注入内存实现，生产注入 Prisma 实现。
  *
- * withLock 的 mutate 必须是同步的纯内存函数：rdb 实现会在读快照后执行它，并把差异提交给
- * DB 函数做版本校验；版本冲突时会基于新快照重跑 mutate，所以函数里不能包含外部调用或副作用。
+ * withLock 的 mutate 必须是同步函数：Prisma 实现会在数据库行锁内执行它，
+ * 若允许 await（例如把 35 秒的 AI 调用放进去）会长时间占住锁并拖垮并发提交。
  * AI 调用一律放在两次 withLock 之间，用 aiStatus === 'pending' 作为跨请求的抢占标记。
  */
 export interface RoomRepository {

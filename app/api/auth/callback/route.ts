@@ -8,6 +8,7 @@ import {
   createSession,
   sessionCookieOptions,
 } from '@/lib/auth-session'
+import {getPrisma} from '@/lib/prisma'
 import {exchangeToken, fetchUserProfile, oauthConfig, readCallbackCode} from '@/lib/zhihu-oauth'
 
 /** 失败时跳回首页并带一个粗粒度原因，不把内部错误细节写进 URL */
@@ -21,6 +22,7 @@ function failure(request: Request, reason: string): NextResponse {
 }
 
 export async function GET(request: Request) {
+  const prisma = getPrisma()
   const params = new URL(request.url).searchParams
 
   const code = readCallbackCode(params)
@@ -29,13 +31,13 @@ export async function GET(request: Request) {
   // 校验 state 与本浏览器 Cookie 一致并原子消费，通过后才交换 token
   const state = params.get('state') ?? ''
   const cookieState = (await cookies()).get(STATE_COOKIE)?.value
-  if (!(await consumeOauthState(state, cookieState))) return failure(request, 'state_invalid')
+  if (!(await consumeOauthState(prisma, state, cookieState))) return failure(request, 'state_invalid')
 
   try {
     const config = oauthConfig()
     const token = await exchangeToken(config, code)
     const profile = await fetchUserProfile(token.accessToken)
-    const {token: sessionToken} = await createSession(profile, token)
+    const {token: sessionToken} = await createSession(prisma, profile, token)
 
     const response = NextResponse.redirect(new URL('/', request.url))
     response.cookies.set(SESSION_COOKIE, sessionToken, sessionCookieOptions(SESSION_MAX_AGE_SECONDS))
