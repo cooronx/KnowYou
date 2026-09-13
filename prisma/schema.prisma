@@ -48,6 +48,48 @@ model Room {
   report  Report?
 }
 
+model User {
+  id String @id @default(cuid())
+
+  // 知乎 uid 是 int64，可能超过 JS 安全整数范围，全程以 TEXT 存储与传递
+  zhihuUid String @unique
+  hashId   String @default("")
+  fullname String @default("")
+  avatar   String @default("")
+  headline String @default("")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sessions Session[]
+}
+
+model Session {
+  // 存放会话令牌的 SHA-256，Cookie 里才是原值：数据库泄露不足以直接伪造会话
+  tokenHash String @id
+  userId    String
+
+  // OAuth token 只留服务端，不下发浏览器
+  oauthAccessToken   String
+  oauthTokenExpires  DateTime
+  expiresAt          DateTime
+  createdAt          DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model OauthState {
+  // 一次登录请求的 CSRF 关联值，回调时原子消费，防重放
+  state     String   @id
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
+}
+
 model Player {
   id       String     @id
   roomCode String
