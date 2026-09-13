@@ -24,19 +24,26 @@ services:
       # 容器内通过服务名访问 postgres，覆盖 .env 里的本地地址
       DATABASE_URL: postgresql://knowyou:knowyou@postgres:5432/knowyou?schema=public
       PORT: '3000'
-      WEB_APP_URL: https://api.iroha.chat
-      CORS_ORIGINS: https://api.iroha.chat
+      # 前端在 iroha.chat，后端在 api.iroha.chat
+      WEB_APP_URL: https://iroha.chat
+      CORS_ORIGINS: https://iroha.chat,https://www.iroha.chat
+    # Caddy 已反代 api.iroha.chat -> 127.0.0.1:3000，后端独占该端口
+    ports:
+      - '127.0.0.1:3000:3000'
     depends_on:
       postgres:
         condition: service_healthy
 
+  # 仅用于本地预览前端构建产物；线上前端部署在 iroha.chat
   web:
-    build: ./web
+    build:
+      context: ./web
+      args:
+        VITE_API_BASE_URL: https://api.iroha.chat
     container_name: knowyou-web
     restart: unless-stopped
-    # Caddy 仍反代到 127.0.0.1:3000，由 nginx 托管前端并转发 /api
     ports:
-      - '127.0.0.1:3000:3000'
+      - '127.0.0.1:8080:3000'
     depends_on:
       - backend
 
