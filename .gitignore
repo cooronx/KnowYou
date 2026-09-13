@@ -1,0 +1,39 @@
+# Claude Code personal settings — holds API credentials, never commit
+.claude/settings.local.json
+
+# Secrets and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+secrets.json
+
+# Zhihu CLI local state (downloaded binary + access secret)
+.zhihu/
+zhihu-cli/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Node
+node_modules/
+dist/
+build/
+.next/
+*.log
+
+# OS and editor junk
+.DS_Store
+Thumbs.db
+*:Zone.Identifier
+.idea/
+.vscode/
+*.swp
