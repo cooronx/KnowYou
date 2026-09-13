@@ -5,20 +5,30 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "test": "node --test \"tests/**/*.test.ts\""
+    "test": "node --env-file-if-exists=.env --test \"tests/**/*.test.ts\"",
+    "postinstall": "prisma generate",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:studio": "prisma studio"
   },
   "dependencies": {
+    "@prisma/adapter-pg": "7.10.0",
+    "@prisma/client": "7.10.0",
+    "dotenv": "17.4.2",
     "next": "latest",
     "react": "latest",
     "react-dom": "latest"
   },
   "devDependencies": {
-    "typescript": "latest",
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
-    "tailwindcss": "latest",
+    "autoprefixer": "latest",
     "postcss": "latest",
-    "autoprefixer": "latest"
+    "prisma": "7.10.0",
+    "tailwindcss": "latest",
+    "typescript": "latest"
   }
 }

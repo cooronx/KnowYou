@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Prisma 7 起连接串移到 prisma.config.ts 的 datasource.url
+datasource db {
+  provider = "postgresql"
+}
+
+enum RoomState {
+  waiting
+  playing
+  finished
+}
+
+enum AiStatus {
+  idle
+  pending
+  error
+}
+
+enum PlayerRole {
+  a
+  b
+}
+
+model Room {
+  code String @id
+
+  state        RoomState @default(waiting)
+  round        Int       @default(0)
+  narration    String    @default("")
+  scene        String    @default("")
+  isEnding     Boolean   @default(false)
+  endingReason String    @default("")
+  aiStatus     AiStatus  @default(idle)
+  aiError      String    @default("")
+
+  // AI 生成的当前可选分支与本回合未结算的提交，结构由 lib/room-store.ts 的 Choice / Submission 决定
+  choices     Json @default("[]")
+  submissions Json @default("{}")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  players Player[]
+  turns   Turn[]
+  report  Report?
+}
+
+model Player {
+  id       String     @id
+  roomCode String
+  name     String
+  role     PlayerRole
+  // 座位号保持 Room.playerIds 的加入顺序，回合结算依赖这个顺序
+  seat     Int
+
+  room Room @relation(fields: [roomCode], references: [code], onDelete: Cascade)
+
+  @@unique([roomCode, seat])
+  @@index([roomCode])
+}
+
+model Turn {
+  id        String @id @default(cuid())
+  roomCode  String
+  round     Int
+  // 本回合双方的提交快照，结构由 lib/room-store.ts 的 StoryEntry 决定
+  entries   Json
+  narration String
+
+  room Room @relation(fields: [roomCode], references: [code], onDelete: Cascade)
+
+  @@unique([roomCode, round])
+}
+
+model Report {
+  roomCode    String   @id
+  common      String[]
+  differences String[]
+  complement  String
+  topics      String[]
+
+  room Room @relation(fields: [roomCode], references: [code], onDelete: Cascade)
+}
