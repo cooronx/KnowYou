@@ -1,4 +1,4 @@
-import type {AdvanceInput, GameAi, Report, SceneResult, SummaryInput} from './room-store.ts'
+import type {AdvanceInput, GameAi, Report, SceneResult, SummaryInput} from './room-types.ts'
 import type {StoryOutline} from './story.ts'
 
 const DEFAULT_BASE_URL = 'https://api.openai.com/v1'
