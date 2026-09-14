@@ -212,7 +212,7 @@ export default function RoomPage({
                   </div>
 
                   {seedsError && (
-                    <p className="mt-6 text-caption text-[#b30000]">剧本库读取失败，将使用默认剧本：{seedsError}</p>
+                    <p className="mt-6 text-caption text-[#b30000]">剧本库读取失败：{seedsError}</p>
                   )}
                   {seeds.length === 0 && !seedsError && (
                     <p className="mt-6 flex items-center gap-3 text-caption text-ink-muted">
