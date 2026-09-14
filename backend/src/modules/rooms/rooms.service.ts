@@ -28,6 +28,8 @@ export class RoomsService {
 
   async start(code: string, workId?: string): Promise<Room> {
     const outline = await this.seeds.getOutline(workId)
+    // 大纲未就绪的剧本不展示也不开局，避免用默认剧本顶替
+    if (!outline) throw new Error('该剧本尚未就绪，请选择其他剧本或稍后再试')
     return startGame(code, this.ai, this.repo, outline)
   }
 

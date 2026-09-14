@@ -1,5 +1,5 @@
 import type {SeedRepository} from './seed-repository.ts'
-import {defaultStory, type StoryOutline, type StoryOutlineAi} from './story.ts'
+import type {StoryOutline, StoryOutlineAi} from './story.ts'
 import {fetchStoryDetail} from './zhihu-content.ts'
 
 /**
@@ -12,17 +12,17 @@ export class StoryOutlineResolver {
   private readonly repo: SeedRepository
   private readonly ai: StoryOutlineAi
   // 同一 work_id 的详情+提炼只跑一次，避免并发开局重复调用接口和 LLM
-  private readonly inflight = new Map<string, Promise<StoryOutline>>()
+  private readonly inflight = new Map<string, Promise<StoryOutline | undefined>>()
 
   constructor(repo: SeedRepository, ai: StoryOutlineAi) {
     this.repo = repo
     this.ai = ai
   }
 
-  /** 未指定 work_id，或任一步骤失败时都返回默认剧本，保证开局不中断 */
-  get(workId?: string): Promise<StoryOutline> {
+  /** 未指定 work_id，或详情/提炼任一步失败时返回 undefined，不提供兜底剧本 */
+  get(workId?: string): Promise<StoryOutline | undefined> {
     const id = workId?.trim()
-    if (!id) return Promise.resolve(defaultStory)
+    if (!id) return Promise.resolve(undefined)
     const running = this.inflight.get(id)
     if (running) return running
     const task = this.load(id).finally(() => this.inflight.delete(id))
@@ -30,7 +30,7 @@ export class StoryOutlineResolver {
     return task
   }
 
-  private async load(workId: string): Promise<StoryOutline> {
+  private async load(workId: string): Promise<StoryOutline | undefined> {
     try {
       let record = await this.repo.find(workId)
       if (!record?.content) {
@@ -40,7 +40,7 @@ export class StoryOutlineResolver {
           record = await this.repo.find(workId)
         }
       }
-      if (!record) return defaultStory
+      if (!record) return undefined
       if (record.outline) return record.outline
 
       const outline = await this.ai.extractOutline({
@@ -53,8 +53,8 @@ export class StoryOutlineResolver {
       await this.repo.saveOutline(workId, outline)
       return outline
     } catch (error) {
-      console.error(`[seeds] 提炼大纲失败，回退默认剧本（${workId}）：`, error instanceof Error ? error.message : error)
-      return defaultStory
+      console.error(`[seeds] 提炼大纲失败，跳过该剧本（${workId}）：`, error instanceof Error ? error.message : error)
+      return undefined
     }
   }
 }

@@ -74,8 +74,29 @@ export default function RoomPage({
     }
   }, [forceDemo, room?.state])
 
+  // 后台可能还在逐篇生成大纲，列表为空时轮询等待就绪的剧本出现
   useEffect(() => {
-    if (!selectedWorkId && seeds.length > 0) setSelectedWorkId(seeds[0].workId)
+    if (forceDemo || room?.state !== 'waiting' || seeds.length > 0) return
+    let active = true
+    const timer = setInterval(() => {
+      api
+        .seedList()
+        .then((list) => {
+          if (!active) return
+          setSeeds(list)
+          setSeedsError('')
+        })
+        .catch(() => undefined)
+    }, 5000)
+    return () => {
+      active = false
+      clearInterval(timer)
+    }
+  }, [forceDemo, room?.state, seeds.length])
+
+  useEffect(() => {
+    if (seeds.length === 0) return
+    if (!seeds.some((seed) => seed.workId === selectedWorkId)) setSelectedWorkId(seeds[0].workId)
   }, [seeds, selectedWorkId])
 
   async function post(action: (value: string) => Promise<Room>): Promise<void> {
@@ -196,7 +217,7 @@ export default function RoomPage({
                   {seeds.length === 0 && !seedsError && (
                     <p className="mt-6 flex items-center gap-3 text-caption text-ink-muted">
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      正在读取剧本库…
+                      剧本正在生成中，就绪后会自动出现…
                     </p>
                   )}
 
@@ -443,14 +464,16 @@ export default function RoomPage({
                 <p className="mt-3 text-caption text-ink-soft">
                   已加入 {room.playerIds.length} / 2 人。两人到齐后即可开始这一局。
                 </p>
-                {selectedSeed && (
-                  <p className="mt-3 text-caption text-ink-soft">
-                    已选剧本《{selectedSeed.title}》，开始时由 AI 提炼。
-                  </p>
+                {selectedSeed ? (
+                  <p className="mt-3 text-caption text-ink-soft">已选剧本《{selectedSeed.title}》。</p>
+                ) : (
+                  <p className="mt-3 text-caption text-ink-soft">剧本正在生成中，就绪后即可开始。</p>
                 )}
                 <Button
                   className="mt-5 w-full"
-                  disabled={demo || room.playerIds.length !== 2 || room.aiStatus === 'pending' || starting}
+                  disabled={
+                    demo || room.playerIds.length !== 2 || room.aiStatus === 'pending' || starting || !selectedWorkId
+                  }
                   onClick={start}
                 >
                   {starting || room.aiStatus === 'pending' ? <Loader2 className="h-4 w-4 animate-spin" /> : null}

@@ -3,7 +3,7 @@ import {isAiConfigured} from '../../ai.ts'
 import type {SeedRepository} from '../../seed-repository.ts'
 import {StoryOutlineResolver} from '../../seed-outline.ts'
 import type {SeedRecord, SeedSummary} from '../../seed-types.ts'
-import {defaultStory, type StoryOutline, type StoryOutlineAi} from '../../story.ts'
+import type {StoryOutline, StoryOutlineAi} from '../../story.ts'
 import {fetchStoryList} from '../../zhihu-content.ts'
 import {STORY_OUTLINE_AI} from '../ai/ai.tokens.ts'
 import {SEED_REPOSITORY} from './seeds.tokens.ts'
@@ -67,8 +67,9 @@ export class SeedsService implements OnModuleInit, OnModuleDestroy {
 
     for (const seed of pending) {
       const outline = await this.resolver.get(seed.workId)
-      if (outline === defaultStory) {
-        console.warn(`[seeds] 大纲生成失败，等待下次刷新重试：${seed.title}`)
+      if (!outline) {
+        // 生成失败不落库、不兜底，等待下次刷新重试，期间该剧本不对外展示
+        console.warn(`[seeds] 大纲生成失败，跳过并等待下次重试：${seed.title}`)
         continue
       }
       console.info(`[seeds] 已生成大纲：${seed.title}`)
@@ -87,24 +88,26 @@ export class SeedsService implements OnModuleInit, OnModuleDestroy {
     return this.repo.list()
   }
 
-  /** 列表只返回元数据，正文与作者署名按详情单独读取 */
+  /** 只返回已生成结构化大纲的剧本，未就绪的不展示；正文与作者署名按详情单独读取 */
   async listSummaries(): Promise<SeedSummary[]> {
     const seeds = await this.repo.list()
-    return seeds.map(({workId, title, labels, description, artwork}) => ({
-      workId,
-      title,
-      labels,
-      description,
-      artwork,
-    }))
+    return seeds
+      .filter((seed) => Boolean(seed.outline))
+      .map(({workId, title, labels, description, artwork}) => ({
+        workId,
+        title,
+        labels,
+        description,
+        artwork,
+      }))
   }
 
   get(workId: string): Promise<SeedRecord | undefined> {
     return this.repo.find(workId)
   }
 
-  /** 取得某篇故事的双人剧本大纲：优先用缓存，缺失时按需拉详情并提炼一次 */
-  getOutline(workId?: string): Promise<StoryOutline> {
+  /** 取得某篇故事的双人剧本大纲：优先用缓存，缺失时按需拉详情并提炼一次；失败返回 undefined */
+  getOutline(workId?: string): Promise<StoryOutline | undefined> {
     return this.resolver.get(workId)
   }
 }

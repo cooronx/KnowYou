@@ -3,7 +3,7 @@ import test from 'node:test'
 import {createMemorySeedRepository} from '../src/seed-repository-memory.ts'
 import type {SeedRecord} from '../src/seed-types.ts'
 import {StoryOutlineResolver} from '../src/seed-outline.ts'
-import {defaultStory, type StoryOutline, type StoryOutlineAi} from '../src/story.ts'
+import type {StoryOutline, StoryOutlineAi} from '../src/story.ts'
 import {fetchStoryDetail, fetchStoryList, parseStoryDetail, parseStoryList} from '../src/zhihu-content.ts'
 
 const sampleOutline: StoryOutline = {
@@ -114,6 +114,7 @@ test('已缓存大纲直接返回，不重复调用提炼', async () => {
   const service = new StoryOutlineResolver(repo, makeOutlineAi((id) => calls.push(id)))
 
   const outline = await service.get('100')
+  assert.ok(outline)
   assert.equal(outline.title, sampleOutline.title)
   assert.deepEqual(calls, [])
 })
@@ -124,6 +125,7 @@ test('缺少大纲时提炼一次并落库，之后走缓存', async () => {
   const service = new StoryOutlineResolver(repo, makeOutlineAi((id) => calls.push(id)))
 
   const first = await service.get('101')
+  assert.ok(first)
   assert.equal(first.id, '101')
   assert.deepEqual(calls, ['101'])
   assert.ok((await repo.find('101'))?.outline, '大纲应落库')
@@ -147,7 +149,7 @@ test('并发取同一大纲只提炼一次', async () => {
   assert.equal(calls, 1)
 })
 
-test('提炼失败回退默认剧本，不影响开局', async () => {
+test('提炼失败返回 undefined 且不落库，未指定 work_id 同样无兜底', async () => {
   const repo = createMemorySeedRepository([seed({workId: '103'})])
   const service = new StoryOutlineResolver(repo, {
     async extractOutline() {
@@ -155,7 +157,7 @@ test('提炼失败回退默认剧本，不影响开局', async () => {
     },
   })
 
-  const outline = await service.get('103')
-  assert.equal(outline.id, defaultStory.id)
-  assert.equal(await service.get(undefined), defaultStory)
+  assert.equal(await service.get('103'), undefined)
+  assert.equal((await repo.find('103'))?.outline, undefined, '失败不落库，等待下次重试')
+  assert.equal(await service.get(undefined), undefined)
 })
