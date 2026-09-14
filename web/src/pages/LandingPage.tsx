@@ -1,6 +1,9 @@
+import {useEffect, useState} from 'react'
 import {ArrowUpRight, CircleDot, HeartHandshake} from 'lucide-react'
 import {Button} from '@/components/ui/button'
+import {api} from '@/lib/api'
 import {demoRoomPreview} from '@/lib/mock'
+import type {SeedSummary} from '@/types'
 
 function AgentConsole() {
   return (
@@ -90,6 +93,51 @@ function StoryCard() {
   )
 }
 
+function StoryLibrary() {
+  const [seeds, setSeeds] = useState<SeedSummary[]>([])
+
+  useEffect(() => {
+    let active = true
+    api
+      .seedList()
+      .then((list) => {
+        if (active) setSeeds(list)
+      })
+      .catch(() => undefined)
+    return () => {
+      active = false
+    }
+  }, [])
+
+  if (seeds.length === 0) return null
+
+  return (
+    <div className="mt-16 text-left lg:mt-20">
+      <div className="flex items-end justify-between border-b border-ink-hairline pb-5">
+        <div>
+          <p className="ky-eyebrow">02 · Story Library</p>
+          <h2 className="mt-3 font-display text-heading-feature text-ink">来自知乎故事库</h2>
+        </div>
+        <p className="font-mono text-micro uppercase tracking-[0.16em] text-ink-muted">{seeds.length} Stories</p>
+      </div>
+      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {seeds.map((seed) => (
+          <article key={seed.workId} className="rounded-md border border-ink-hairline bg-white p-5">
+            <p className="font-display text-heading-feature text-ink">{seed.title}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {seed.labels.slice(0, 4).map((label) => (
+                <span key={label} className="ky-chip border-ink-hairline text-ink-soft">
+                  {label}
+                </span>
+              ))}
+            </div>
+          </article>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function LandingPage({onStart}: {onStart: () => void}) {
   return (
     <section className="ky-shell pb-16 pt-16 text-center lg:pb-24 lg:pt-24">
@@ -116,6 +164,8 @@ export default function LandingPage({onStart}: {onStart: () => void}) {
         <AgentConsole />
         <StoryCard />
       </div>
+
+      <StoryLibrary />
     </section>
   )
 }

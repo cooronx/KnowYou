@@ -57,6 +57,14 @@ export type Room = {
   report?: Report
 }
 
+export type SeedSummary = {
+  workId: string
+  title: string
+  labels: string[]
+  description: string
+  artwork: string
+}
+
 export type SessionUser = {
   id: string
   zhihuUid: string

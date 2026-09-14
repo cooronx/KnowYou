@@ -1,18 +1,9 @@
-import {useCallback, useEffect, useMemo, useState, type ReactNode} from 'react'
+import {useCallback, useEffect, useMemo, useState} from 'react'
 import {ArrowRight, Check, Clock, Loader2, RefreshCw, Users} from 'lucide-react'
 import {Button} from '@/components/ui/button'
 import {api, isOffline} from '@/lib/api'
 import {mockRoom} from '@/lib/mock'
-import {MAX_ROUNDS, story, type Room} from '@/types'
-
-function StoryCard({title, children}: {title: string; children: ReactNode}) {
-  return (
-    <div className="rounded-lg border border-ink-hairline bg-white p-6 sm:p-7">
-      <h2 className="font-display text-heading-feature text-ink">{title}</h2>
-      <div className="mt-4 text-caption text-ink-soft">{children}</div>
-    </div>
-  )
-}
+import {MAX_ROUNDS, story, type Room, type SeedSummary} from '@/types'
 
 export default function RoomPage({
   code,
@@ -30,6 +21,10 @@ export default function RoomPage({
   const [text, setText] = useState('')
   const [error, setError] = useState('')
   const [demo, setDemo] = useState(false)
+  const [seeds, setSeeds] = useState<SeedSummary[]>([])
+  const [seedsError, setSeedsError] = useState('')
+  const [selectedWorkId, setSelectedWorkId] = useState('')
+  const [starting, setStarting] = useState(false)
 
   const load = useCallback(async () => {
     if (forceDemo) {
@@ -61,6 +56,28 @@ export default function RoomPage({
     return () => clearInterval(timer)
   }, [load, forceDemo])
 
+  useEffect(() => {
+    if (forceDemo || room?.state !== 'waiting') return
+    let active = true
+    api
+      .seedList()
+      .then((list) => {
+        if (!active) return
+        setSeeds(list)
+        setSeedsError('')
+      })
+      .catch((caught) => {
+        if (active) setSeedsError(caught instanceof Error ? caught.message : '剧本库加载失败')
+      })
+    return () => {
+      active = false
+    }
+  }, [forceDemo, room?.state])
+
+  useEffect(() => {
+    if (!selectedWorkId && seeds.length > 0) setSelectedWorkId(seeds[0].workId)
+  }, [seeds, selectedWorkId])
+
   async function post(action: (value: string) => Promise<Room>): Promise<void> {
     if (demo) {
       setError('演示数据不可提交，请启动后端服务后重试')
@@ -74,6 +91,25 @@ export default function RoomPage({
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : '操作失败')
       await load()
+    }
+  }
+
+  async function start(): Promise<void> {
+    if (demo) {
+      setError('演示数据不可提交，请启动后端服务后重试')
+      return
+    }
+    setStarting(true)
+    setError('')
+    try {
+      setRoom(await api.startRoom(code, selectedWorkId || undefined))
+      setChoiceId('')
+      setText('')
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : '开始失败')
+      await load()
+    } finally {
+      setStarting(false)
     }
   }
 
@@ -97,6 +133,8 @@ export default function RoomPage({
   const opponentId = room.playerIds.find((id) => id !== activePlayerId)
   const opponent = opponentId ? room.players[opponentId] : undefined
   const opponentSubmitted = opponentId ? Boolean(room.submissions[opponentId]) : false
+  const selectedSeed = seeds.find((seed) => seed.workId === selectedWorkId)
+  const headerTitle = room.state === 'waiting' && selectedSeed ? selectedSeed.title : outline.title
 
   return (
     <div className="ky-shell py-10 lg:py-14">
@@ -112,7 +150,7 @@ export default function RoomPage({
             <p className="ky-eyebrow">
               {room.state === 'waiting' ? 'Room · Waiting' : room.state === 'playing' ? 'Room · Playing' : 'Room · Finished'}
             </p>
-            <h1 className="mt-4 font-display text-heading-section text-ink">{outline.title}</h1>
+            <h1 className="mt-4 font-display text-heading-section text-ink">{headerTitle}</h1>
           </div>
           <div className="flex items-center gap-4 font-mono text-micro uppercase tracking-[0.16em] text-ink-muted">
             <span>Code {room.code}</span>
@@ -137,28 +175,58 @@ export default function RoomPage({
                   </p>
                 </section>
 
-                <section className="grid gap-6 sm:grid-cols-2">
-                  <StoryCard title="故事简介">{outline.summary}</StoryCard>
-                  <StoryCard title="开场">{outline.opening}</StoryCard>
-                </section>
-
                 <section className="border-t border-ink-hairline pt-8">
-                  <h2 className="font-display text-heading-feature text-ink">角色卡</h2>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                      <h2 className="font-display text-heading-feature text-ink">选择剧本</h2>
+                      <p className="mt-2 text-caption text-ink-soft">
+                        剧本来自知乎故事库，选定后由 AI 提炼成两人的共同处境。
+                      </p>
+                    </div>
+                    {seeds.length > 0 && (
+                      <p className="font-mono text-micro uppercase tracking-[0.16em] text-ink-muted">
+                        {seeds.length} Stories
+                      </p>
+                    )}
+                  </div>
+
+                  {seedsError && (
+                    <p className="mt-6 text-caption text-[#b30000]">剧本库读取失败，将使用默认剧本：{seedsError}</p>
+                  )}
+                  {seeds.length === 0 && !seedsError && (
+                    <p className="mt-6 flex items-center gap-3 text-caption text-ink-muted">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      正在读取剧本库…
+                    </p>
+                  )}
+
                   <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                    {outline.characters.map((character) => {
-                      const ownerId = room.playerIds.find((id) => room.players[id].role === character.id)
+                    {seeds.map((seed) => {
+                      const active = seed.workId === selectedWorkId
+                      const intro = seed.description.length > 52 ? `${seed.description.slice(0, 52)}…` : seed.description
                       return (
-                        <div key={character.id} className="rounded-md border border-ink-hairline bg-white p-6">
-                          <span className="font-mono text-micro uppercase tracking-[0.16em] text-brand-blue">
-                            {character.id.toUpperCase()} 角色
-                          </span>
-                          <p className="mt-3 font-display text-heading-feature text-ink">{character.name}</p>
-                          <p className="mt-3 text-caption text-ink-soft">目标：{character.goal}</p>
-                          <p className="mt-1 text-caption text-ink-soft">性格：{character.traits}</p>
-                          <p className="mt-4 font-mono text-micro uppercase tracking-[0.14em] text-ink-muted">
-                            {ownerId ? `${room.players[ownerId].name} 扮演` : '待玩家加入'}
-                          </p>
-                        </div>
+                        <button
+                          key={seed.workId}
+                          type="button"
+                          onClick={() => setSelectedWorkId(seed.workId)}
+                          className={`flex flex-col rounded-md border p-6 text-left transition-colors ${
+                            active ? 'border-brand-coral bg-brand-coral/5' : 'border-ink-hairline bg-white hover:border-ink-muted'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="font-mono text-micro uppercase tracking-[0.16em] text-brand-blue">知乎故事</span>
+                            {active && <Check className="h-4 w-4 text-brand-coral" />}
+                          </div>
+                          <p className="mt-3 font-display text-heading-feature text-ink">{seed.title}</p>
+                          {intro && <p className="mt-2 text-caption text-ink-soft">{intro}</p>}
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            {seed.labels.slice(0, 5).map((label) => (
+                              <span key={label} className="ky-chip border-ink-hairline text-ink-soft">
+                                {label}
+                              </span>
+                            ))}
+                          </div>
+                        </button>
                       )
                     })}
                   </div>
@@ -375,13 +443,18 @@ export default function RoomPage({
                 <p className="mt-3 text-caption text-ink-soft">
                   已加入 {room.playerIds.length} / 2 人。两人到齐后即可开始这一局。
                 </p>
+                {selectedSeed && (
+                  <p className="mt-3 text-caption text-ink-soft">
+                    已选剧本《{selectedSeed.title}》，开始时由 AI 提炼。
+                  </p>
+                )}
                 <Button
                   className="mt-5 w-full"
-                  disabled={demo || room.playerIds.length !== 2 || room.aiStatus === 'pending'}
-                  onClick={() => post((value) => api.startRoom(value))}
+                  disabled={demo || room.playerIds.length !== 2 || room.aiStatus === 'pending' || starting}
+                  onClick={start}
                 >
-                  {room.aiStatus === 'pending' ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                  开始游戏
+                  {starting || room.aiStatus === 'pending' ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  {starting ? '正在生成剧本…' : '开始游戏'}
                 </Button>
               </div>
             )}

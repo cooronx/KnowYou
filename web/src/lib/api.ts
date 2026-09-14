@@ -1,4 +1,4 @@
-import type {Room, SessionUser} from '@/types'
+import type {Room, SeedSummary, SessionUser} from '@/types'
 
 /** 默认走同源 /api（生产由 Caddy 反代）；如前后端分域名再设置 VITE_API_BASE_URL */
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/+$/, '')
@@ -26,10 +26,12 @@ export const api = {
   loginUrl: `${API_BASE}/api/auth/login`,
   session: () => request<{user: SessionUser | null}>('/auth/session'),
   logout: () => request<{ok: boolean}>('/auth/logout', {method: 'POST'}),
+  seedList: () => request<SeedSummary[]>('/seeds'),
   createRoom: () => request<{code: string; playerId: string}>('/rooms', {method: 'POST'}),
   getRoom: (code: string) => request<Room>(`/rooms/${code}`),
   joinRoom: (code: string) => request<{code: string; playerId: string}>(`/rooms/${code}/join`, {method: 'POST'}),
-  startRoom: (code: string) => request<Room>(`/rooms/${code}/start`, {method: 'POST'}),
+  startRoom: (code: string, workId?: string) =>
+    request<Room>(`/rooms/${code}/start`, {method: 'POST', body: JSON.stringify(workId ? {workId} : {})}),
   submitTurn: (code: string, body: {playerId: string; choiceId: string; text: string}) =>
     request<Room>(`/rooms/${code}/turn`, {method: 'POST', body: JSON.stringify(body)}),
   retry: (code: string) => request<Room>(`/rooms/${code}/retry`, {method: 'POST'}),
