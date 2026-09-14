@@ -93,12 +93,13 @@ export class SeedsService implements OnModuleInit, OnModuleDestroy {
     const seeds = await this.repo.list()
     return seeds
       .filter((seed) => Boolean(seed.outline))
-      .map(({workId, title, labels, description, artwork}) => ({
+      .map(({workId, title, labels, description, artwork, tabArtwork}) => ({
         workId,
         title,
         labels,
         description,
         artwork,
+        tabArtwork,
       }))
   }
 

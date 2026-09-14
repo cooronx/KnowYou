@@ -121,18 +121,35 @@ function StoryLibrary() {
         <p className="font-mono text-micro uppercase tracking-[0.16em] text-ink-muted">{seeds.length} Stories</p>
       </div>
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {seeds.map((seed) => (
-          <article key={seed.workId} className="rounded-md border border-ink-hairline bg-white p-5">
-            <p className="font-display text-heading-feature text-ink">{seed.title}</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {seed.labels.slice(0, 4).map((label) => (
-                <span key={label} className="ky-chip border-ink-hairline text-ink-soft">
-                  {label}
-                </span>
-              ))}
-            </div>
-          </article>
-        ))}
+        {seeds.map((seed) => {
+          const cover = seed.tabArtwork || seed.artwork
+          return (
+            <article key={seed.workId} className="overflow-hidden rounded-md border border-ink-hairline bg-white">
+              {cover && (
+                <img
+                  src={cover}
+                  alt=""
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                  onError={(event) => {
+                    event.currentTarget.style.display = 'none'
+                  }}
+                  className="h-36 w-full object-cover"
+                />
+              )}
+              <div className="p-5">
+                <p className="font-display text-heading-feature text-ink">{seed.title}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {seed.labels.slice(0, 4).map((label) => (
+                    <span key={label} className="ky-chip border-ink-hairline text-ink-soft">
+                      {label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </article>
+          )
+        })}
       </div>
     </div>
   )

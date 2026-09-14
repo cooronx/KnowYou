@@ -63,6 +63,7 @@ export type SeedSummary = {
   labels: string[]
   description: string
   artwork: string
+  tabArtwork: string
 }
 
 export type SessionUser = {

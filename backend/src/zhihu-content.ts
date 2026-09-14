@@ -63,6 +63,7 @@ export function parseStoryList(raw: unknown): SeedSummary[] {
       labels: asStringList(row.labels),
       description: asString(row.description),
       artwork: asString(row.artwork),
+      tabArtwork: asString(row.tab_artwork),
     })
   }
   return summaries

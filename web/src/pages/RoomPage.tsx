@@ -224,28 +224,43 @@ export default function RoomPage({
                   <div className="mt-6 grid gap-4 sm:grid-cols-2">
                     {seeds.map((seed) => {
                       const active = seed.workId === selectedWorkId
+                      const cover = seed.tabArtwork || seed.artwork
                       const intro = seed.description.length > 52 ? `${seed.description.slice(0, 52)}…` : seed.description
                       return (
                         <button
                           key={seed.workId}
                           type="button"
                           onClick={() => setSelectedWorkId(seed.workId)}
-                          className={`flex flex-col rounded-md border p-6 text-left transition-colors ${
+                          className={`flex flex-col overflow-hidden rounded-md border text-left transition-colors ${
                             active ? 'border-brand-coral bg-brand-coral/5' : 'border-ink-hairline bg-white hover:border-ink-muted'
                           }`}
                         >
-                          <div className="flex items-center justify-between gap-3">
-                            <span className="font-mono text-micro uppercase tracking-[0.16em] text-brand-blue">知乎故事</span>
-                            {active && <Check className="h-4 w-4 text-brand-coral" />}
-                          </div>
-                          <p className="mt-3 font-display text-heading-feature text-ink">{seed.title}</p>
-                          {intro && <p className="mt-2 text-caption text-ink-soft">{intro}</p>}
-                          <div className="mt-4 flex flex-wrap gap-2">
-                            {seed.labels.slice(0, 5).map((label) => (
-                              <span key={label} className="ky-chip border-ink-hairline text-ink-soft">
-                                {label}
-                              </span>
-                            ))}
+                          {cover && (
+                            <img
+                              src={cover}
+                              alt=""
+                              loading="lazy"
+                              referrerPolicy="no-referrer"
+                              onError={(event) => {
+                                event.currentTarget.style.display = 'none'
+                              }}
+                              className="h-32 w-full object-cover"
+                            />
+                          )}
+                          <div className="flex flex-1 flex-col p-6">
+                            <div className="flex items-center justify-between gap-3">
+                              <span className="font-mono text-micro uppercase tracking-[0.16em] text-brand-blue">知乎故事</span>
+                              {active && <Check className="h-4 w-4 text-brand-coral" />}
+                            </div>
+                            <p className="mt-3 font-display text-heading-feature text-ink">{seed.title}</p>
+                            {intro && <p className="mt-2 text-caption text-ink-soft">{intro}</p>}
+                            <div className="mt-4 flex flex-wrap gap-2">
+                              {seed.labels.slice(0, 5).map((label) => (
+                                <span key={label} className="ky-chip border-ink-hairline text-ink-soft">
+                                  {label}
+                                </span>
+                              ))}
+                            </div>
                           </div>
                         </button>
                       )

@@ -34,12 +34,13 @@ export function createMemorySeedRepository(initial: SeedRecord[] = []): SeedRepo
     },
 
     async saveDetail(detail) {
-      const existing = seeds.get(detail.workId) ?? {...detail, description: '', artwork: ''}
+      const existing = seeds.get(detail.workId) ?? {...detail, description: '', artwork: '', tabArtwork: ''}
       seeds.set(detail.workId, {...existing, ...detail})
     },
 
     async saveOutline(workId, outline: StoryOutline) {
-      const existing = seeds.get(workId) ?? summaryRecord({workId, title: '', labels: [], description: '', artwork: ''})
+      const existing =
+        seeds.get(workId) ?? summaryRecord({workId, title: '', labels: [], description: '', artwork: '', tabArtwork: ''})
       seeds.set(workId, {...existing, outline})
     },
   }

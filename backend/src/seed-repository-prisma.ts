@@ -9,6 +9,7 @@ type SeedRow = {
   labels: string[]
   description: string
   artwork: string
+  tabArtwork: string
   authorName: string
   authorAvatar: string
   introduction: string
@@ -23,6 +24,7 @@ function toRecord(row: SeedRow): SeedRecord {
     labels: row.labels,
     description: row.description,
     artwork: row.artwork,
+    tabArtwork: row.tabArtwork,
     authorName: row.authorName,
     authorAvatar: row.authorAvatar,
     introduction: row.introduction,
@@ -56,6 +58,7 @@ export function createPrismaSeedRepository(getClient: () => PrismaClient): SeedR
               labels: item.labels,
               description: item.description,
               artwork: item.artwork,
+              tabArtwork: item.tabArtwork,
             },
             create: {
               workId: item.workId,
@@ -63,6 +66,7 @@ export function createPrismaSeedRepository(getClient: () => PrismaClient): SeedR
               labels: item.labels,
               description: item.description,
               artwork: item.artwork,
+              tabArtwork: item.tabArtwork,
             },
           }),
         ),

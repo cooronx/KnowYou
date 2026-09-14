@@ -7,6 +7,7 @@ export type SeedSummary = {
   labels: string[]
   description: string
   artwork: string
+  tabArtwork: string
 }
 
 /** 详情接口返回的字段，正文与作者署名按需拉取 */

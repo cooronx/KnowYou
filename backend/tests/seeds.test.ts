@@ -27,6 +27,7 @@ function seed(overrides: Partial<SeedRecord> & {workId: string}): SeedRecord {
     labels: ['悬疑'],
     description: '摘要',
     artwork: '',
+    tabArtwork: '',
     introduction: '导语',
     authorName: '作者',
     authorAvatar: '',

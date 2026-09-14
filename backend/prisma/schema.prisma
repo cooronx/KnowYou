@@ -58,7 +58,9 @@ model Seed {
   title        String   @default("")
   labels       String[]
   description  String   @default("")
+  // 列表封面：artwork 为大图，tabArtwork 为列表用缩略图
   artwork      String   @default("")
+  tabArtwork   String   @default("")
   authorName   String   @default("")
   authorAvatar String   @default("")
   introduction String   @default("")
