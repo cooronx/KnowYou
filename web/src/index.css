@@ -16,39 +16,51 @@
     --muted-foreground: 240 3.8% 46.1%;
     --accent: 240 4.8% 95.9%;
     --accent-foreground: 240 5.9% 10%;
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 100% 35.1%;
     --destructive-foreground: 0 0% 98%;
     --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 240 5.9% 10%;
+    --input: 0 0% 85.1%;
+    --ring: 231 70% 60%;
     --radius: 0.5rem;
-  }
-
-  .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 5.9% 10%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
   }
 
   * {
     @apply border-border;
   }
 
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-background font-sans text-ink antialiased;
+  }
+
+  ::selection {
+    @apply bg-brand-coral text-brand-black;
+  }
+
+  :focus-visible {
+    outline: 2px solid #4c6ee6;
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .ky-shell {
+    @apply mx-auto w-full max-w-shell px-5 sm:px-8 lg:px-12;
+  }
+
+  .ky-eyebrow {
+    @apply font-mono text-mono-label uppercase tracking-[0.18em] text-brand-blue;
+  }
+
+  .ky-hairline {
+    @apply border-t border-ink-hairline;
+  }
+
+  .ky-chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-ink-hairline px-3 py-1.5 font-mono text-micro uppercase tracking-[0.12em] text-ink-soft;
   }
 }

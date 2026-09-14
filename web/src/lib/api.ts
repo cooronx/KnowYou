@@ -17,6 +17,11 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return data as T
 }
 
+/** 判断请求是否因后端不可达失败，用于前端退回本地演示数据 */
+export function isOffline(error: unknown): boolean {
+  return error instanceof TypeError || (error instanceof Error && error.message === '请求失败')
+}
+
 export const api = {
   loginUrl: `${API_BASE}/api/auth/login`,
   session: () => request<{user: SessionUser | null}>('/auth/session'),
