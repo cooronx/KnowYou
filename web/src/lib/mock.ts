@@ -13,7 +13,7 @@ export const demoRoomPreview = {
   ],
   players: [
     {name: '你', state: '已提交', submitted: true},
-    {name: 'TA', state: '等待中', submitted: false},
+    {name: '虚拟对手', state: '等待中', submitted: false},
   ],
   timer: '180s',
 }
@@ -25,11 +25,11 @@ const firstRoundEntries: StoryEntry[] = [
     role: 'a',
     choiceId: 'search',
     choiceTitle: '先搜海报墙',
-    text: '让 TA 留意走廊，我先看看墙上的旧海报。',
+    text: '让虚拟对手留意走廊，我先看看墙上的旧海报。',
   },
   {
     playerId: 'p2',
-    name: 'TA',
+    name: '虚拟对手',
     role: 'b',
     choiceId: 'follow',
     choiceTitle: '跟上脚步',
@@ -49,9 +49,9 @@ export const demoHistory: TurnRecord[] = [
     round: 2,
     entries: [
       {playerId: 'p1', name: '你', role: 'a', choiceId: 'b', choiceTitle: '找路', text: '先确认桥体结构，再决定要不要涉水。'},
-      {playerId: 'p2', name: 'TA', role: 'b', choiceId: 'a', choiceTitle: '先救人', text: '水还在涨，我先过去，你把绳子系牢。'},
+      {playerId: 'p2', name: '虚拟对手', role: 'b', choiceId: 'a', choiceTitle: '先救人', text: '水还在涨，我先过去，你把绳子系牢。'},
     ],
-    narration: '你们在桥头短暂争执，最后决定由 TA 先过去，你留在原地固定绳索。',
+    narration: '你们在桥头短暂争执，最后决定由虚拟对手先过去，你留在原地固定绳索。',
   },
 ]
 
@@ -61,7 +61,7 @@ export const mockRoom: Room = {
   playerIds: ['p1', 'p2'],
   players: {
     p1: {name: '你', role: 'a', lastSeenAt: Date.now()},
-    p2: {name: 'TA', role: 'b', lastSeenAt: Date.now()},
+    p2: {name: '虚拟对手', role: 'b', lastSeenAt: Date.now()},
   },
   round: 3,
   scene: '暴雨夜，桥的另一端',
@@ -87,8 +87,8 @@ export const mockReport: Report = {
     '你们都选择把分歧留在剧情里解决，而不是回避它。',
   ],
   differences: [
-    '你更快做决定，TA 更习惯先确认信息。',
-    '你倾向直接行动，TA 倾向先为彼此留好退路。',
+    '你更快做决定，虚拟对手更习惯先确认信息。',
+    '你倾向直接行动，虚拟对手更倾向为彼此留好退路。',
   ],
   complement: '冲动与谨慎组成了更完整的行动方案：一个人负责向前，一个人负责别丢下彼此。',
   topics: [

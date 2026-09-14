@@ -6,13 +6,11 @@ import type {SessionUser} from '@/types'
 
 export function SiteNav({
   inGame,
-  roomCode,
   onHome,
   onStart,
   onExit,
 }: {
   inGame: boolean
-  roomCode: string
   onHome: () => void
   onStart: () => void
   onExit: () => void
@@ -48,14 +46,14 @@ export function SiteNav({
 
         {inGame && (
           <span className="hidden font-mono text-micro uppercase tracking-[0.18em] text-ink-soft sm:block">
-            Room {roomCode}
+            In Game
           </span>
         )}
 
         <div className="hidden items-center gap-5 lg:flex">
           {inGame ? (
             <Button variant="outline" size="sm" onClick={onExit}>
-              退出房间
+              退出对局
             </Button>
           ) : user ? (
             <>
@@ -90,7 +88,7 @@ export function SiteNav({
           <div className="ky-shell flex flex-col gap-4 py-5">
             {inGame ? (
               <Button variant="outline" className="w-fit" onClick={onExit}>
-                退出房间
+                退出对局
               </Button>
             ) : (
               <Button

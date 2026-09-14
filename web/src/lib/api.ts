@@ -27,6 +27,9 @@ export const api = {
   session: () => request<{user: SessionUser | null}>('/auth/session'),
   logout: () => request<{ok: boolean}>('/auth/logout', {method: 'POST'}),
   seedList: () => request<SeedSummary[]>('/seeds'),
+  // Demo 单人开局：选定剧本后由系统补一个虚拟对手，直接进入对局
+  startDemo: (workId: string) =>
+    request<{code: string; playerId: string}>('/rooms/demo', {method: 'POST', body: JSON.stringify({workId})}),
   createRoom: () => request<{code: string; playerId: string}>('/rooms', {method: 'POST'}),
   // 带上 playerId 时这次读取同时充当在线心跳，服务端按 30 秒节流落库
   getRoom: (code: string, playerId?: string) =>
