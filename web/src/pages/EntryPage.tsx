@@ -11,7 +11,7 @@ const LOGIN_ERRORS: Record<string, string> = {
 }
 
 const POINTS = [
-  '两人一间，先到的叫用户 A，后到的叫用户 B。',
+  '两人一间。',
   '一局 3–8 个回合，双方提交后由 AI 推进剧情。',
   '终局生成同一份认识报告，每条结论都引用具体回合。',
 ]
