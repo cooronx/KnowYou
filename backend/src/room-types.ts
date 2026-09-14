@@ -28,11 +28,18 @@ export type Report = {
   topics: string[]
 }
 
+export type RoomPlayer = {
+  name: string
+  role: PlayerRole
+  // 最近一次心跳的 epoch ms：用数字而非 Date，跨 structuredClone 与 JSON 都稳定
+  lastSeenAt: number
+}
+
 export type Room = {
   code: string
   state: RoomState
   playerIds: string[]
-  players: Record<string, {name: string; role: PlayerRole}>
+  players: Record<string, RoomPlayer>
   // 本局绑定的剧本大纲快照，开局时写入，保证一局内稳定
   outline: StoryOutline
   round: number
@@ -45,6 +52,8 @@ export type Room = {
   endingReason: string
   aiStatus: AiStatus
   aiError: string
+  // 一方掉线或主动退出导致本局提前结束，此时不生成报告
+  abandoned: boolean
   report?: Report
 }
 
@@ -95,5 +104,6 @@ export function freshRoom(code: string): Room {
     endingReason: '',
     aiStatus: 'idle',
     aiError: '',
+    abandoned: false,
   }
 }

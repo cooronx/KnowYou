@@ -1,7 +1,7 @@
 import {Inject, Injectable} from '@nestjs/common'
 import type {GameAi, Room, Submission} from '../../room-types.ts'
 import type {RoomRepository} from '../../room-repository.ts'
-import {create, getRoom, join, retryAi, startGame, submitTurn} from '../../room-store.ts'
+import {create, getRoom, join, leave, retryAi, startGame, submitTurn} from '../../room-store.ts'
 import {GAME_AI} from '../ai/ai.tokens.ts'
 import {SeedsService} from '../seeds/seeds.service.ts'
 import {ROOM_REPOSITORY} from './rooms.tokens.ts'
@@ -18,8 +18,13 @@ export class RoomsService {
     return create(this.repo)
   }
 
-  find(code: string): Promise<Room | undefined> {
-    return getRoom(code, this.repo)
+  /** playerId 可选：带上时这次读取同时充当该玩家的在线心跳 */
+  find(code: string, playerId?: string): Promise<Room | undefined> {
+    return getRoom(code, this.repo, playerId)
+  }
+
+  leave(code: string, playerId: string): Promise<Room> {
+    return leave(code, playerId, this.repo)
   }
 
   join(code: string): Promise<{room: Room; playerId: string}> {

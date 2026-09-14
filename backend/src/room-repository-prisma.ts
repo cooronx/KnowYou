@@ -25,7 +25,11 @@ type RoomRow = Prisma.RoomGetPayload<{include: typeof roomInclude}>
 function toRoom(row: RoomRow): Room {
   const players: Room['players'] = {}
   for (const player of row.players) {
-    players[player.id] = {name: player.name, role: player.role as PlayerRole}
+    players[player.id] = {
+      name: player.name,
+      role: player.role as PlayerRole,
+      lastSeenAt: player.lastSeenAt.getTime(),
+    }
   }
   return {
     code: row.code,
@@ -47,6 +51,7 @@ function toRoom(row: RoomRow): Room {
     endingReason: row.endingReason,
     aiStatus: row.aiStatus as AiStatus,
     aiError: row.aiError,
+    abandoned: row.abandoned,
     report: row.report
       ? {
           common: row.report.common,
@@ -70,13 +75,34 @@ async function persist(tx: Tx, before: Room, after: Room): Promise<void> {
       endingReason: after.endingReason,
       aiStatus: after.aiStatus,
       aiError: after.aiError,
+      abandoned: after.abandoned,
       outline: after.outline as unknown as Prisma.InputJsonValue,
       choices: after.choices as unknown as Prisma.InputJsonValue,
       submissions: after.submissions as unknown as Prisma.InputJsonValue,
     },
   })
 
+  // Player 上有 @@unique([roomCode, seat])，三步顺序不能调换：先删掉离场玩家腾出座位，
+  // 再把留下的玩家向下压缩到 playerIds 的新下标，最后才创建新玩家。
+  // join 会在同一个 withLock 里先回收离线座位再加入新人，若先创建就会撞上尚未压缩的旧座位。
   const newPlayers = after.playerIds.filter((id) => !before.players[id])
+  const removedPlayers = Object.keys(before.players).filter((id) => !after.players[id])
+
+  if (removedPlayers.length > 0) {
+    await tx.player.deleteMany({where: {roomCode: after.code, id: {in: removedPlayers}}})
+  }
+
+  for (const [index, id] of after.playerIds.entries()) {
+    if (!before.players[id]) continue
+    const data: Prisma.PlayerUpdateInput = {}
+    // 压缩只会把座位向下移入刚空出的位置，因此按新下标升序更新不会撞上仍被占用的座位
+    if (removedPlayers.length > 0) data.seat = index
+    if (after.players[id].lastSeenAt !== before.players[id].lastSeenAt) {
+      data.lastSeenAt = new Date(after.players[id].lastSeenAt)
+    }
+    if (Object.keys(data).length > 0) await tx.player.update({where: {id}, data})
+  }
+
   if (newPlayers.length > 0) {
     await tx.player.createMany({
       data: newPlayers.map((id) => ({
@@ -85,6 +111,7 @@ async function persist(tx: Tx, before: Room, after: Room): Promise<void> {
         name: after.players[id].name,
         role: after.players[id].role,
         seat: after.playerIds.indexOf(id),
+        lastSeenAt: new Date(after.players[id].lastSeenAt),
       })),
     })
   }

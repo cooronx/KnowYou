@@ -123,7 +123,11 @@ export default function ReportPage({code, onRestart}: {code: string; onRestart: 
             </div>
           )}
           {!report && !pending && !failed && (
-            <p className="text-body text-ink-soft">故事还没有结束，先回到房间完成回合。</p>
+            <p className="text-body text-ink-soft">
+              {room?.abandoned
+                ? '本局因一方离开提前结束，没有生成认识报告。回到首页可以重新开一局。'
+                : '故事还没有结束，先回到房间完成回合。'}
+            </p>
           )}
         </div>
 

@@ -28,7 +28,11 @@ export const api = {
   logout: () => request<{ok: boolean}>('/auth/logout', {method: 'POST'}),
   seedList: () => request<SeedSummary[]>('/seeds'),
   createRoom: () => request<{code: string; playerId: string}>('/rooms', {method: 'POST'}),
-  getRoom: (code: string) => request<Room>(`/rooms/${code}`),
+  // 带上 playerId 时这次读取同时充当在线心跳，服务端按 30 秒节流落库
+  getRoom: (code: string, playerId?: string) =>
+    request<Room>(`/rooms/${code}${playerId ? `?playerId=${encodeURIComponent(playerId)}` : ''}`),
+  leaveRoom: (code: string, playerId: string) =>
+    request<Room>(`/rooms/${code}/leave`, {method: 'POST', body: JSON.stringify({playerId})}),
   joinRoom: (code: string) => request<{code: string; playerId: string}>(`/rooms/${code}/join`, {method: 'POST'}),
   startRoom: (code: string, workId?: string) =>
     request<Room>(`/rooms/${code}/start`, {method: 'POST', body: JSON.stringify(workId ? {workId} : {})}),

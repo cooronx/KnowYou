@@ -10,6 +10,7 @@ import {
   create,
   getRoom,
   join,
+  leave,
   retryAi,
   startGame,
   submitTurn,
@@ -252,4 +253,111 @@ test('已结束的房间可以重开一局，旧回合与总结被清空', async
   assert.equal(restarted.room.history.length, 0)
   assert.equal(restarted.room.report, undefined)
   assert.equal(restarted.room.playerIds.length, 1)
+})
+
+const OFFLINE_MS = 6 * 60_000
+
+/** 把某个玩家的心跳往前拨，用来构造离线场景，不需要假时钟 */
+async function backdate(repo: RoomRepository, playerId: string, ms: number): Promise<void> {
+  await repo.withLock(ROOM_CODE, (room) => {
+    room.players[playerId].lastSeenAt = Date.now() - ms
+  })
+}
+
+test('waiting 中一方心跳超时：座位被回收，新玩家补上空出的角色', async () => {
+  const {repo, firstId, secondId} = await newRoom()
+  await backdate(repo, firstId, OFFLINE_MS)
+
+  const {room, playerId: thirdId} = await join(ROOM_CODE, repo)
+  assert.equal(room.playerIds.length, 2, '离线座位被回收后仍只有两人')
+  assert.equal(room.players[firstId], undefined, '离线玩家的座位已释放')
+  // 座位可回收后不能再用人数推断角色，否则会产出两个 b
+  assert.equal(room.players[thirdId].role, 'a')
+  assert.equal(room.players[thirdId].name, '用户A')
+  assert.equal(room.players[secondId].role, 'b')
+})
+
+test('playing 中一方心跳超时：本局判定结束且不生成报告', async () => {
+  let summarized = false
+  const ai = makeAi()
+  const watching: GameAi = {
+    ...ai,
+    async summarize(input) {
+      summarized = true
+      return ai.summarize(input)
+    },
+  }
+  const {repo, firstId, secondId} = await newRoom()
+  await startGame(ROOM_CODE, ai, repo)
+  await backdate(repo, secondId, OFFLINE_MS)
+
+  const room = await getRoom(ROOM_CODE, repo, firstId)
+  assert.ok(room)
+  assert.equal(room.state, 'finished')
+  assert.equal(room.abandoned, true)
+  assert.equal(room.report, undefined)
+  assert.match(room.endingReason, /离开/)
+
+  const retried = await retryAi(ROOM_CODE, watching, repo)
+  assert.equal(retried.report, undefined)
+  assert.equal(summarized, false, '历史残缺的局不应调用 AI 总结')
+})
+
+test('主动退出：waiting 立刻释放座位，playing 直接结束本局', async () => {
+  const waiting = await newRoom()
+  const afterLeave = await leave(ROOM_CODE, waiting.firstId, waiting.repo)
+  assert.equal(afterLeave.state, 'waiting')
+  assert.equal(afterLeave.playerIds.length, 1)
+  assert.equal(afterLeave.players[waiting.firstId], undefined)
+  // 退出后空出的座位可以立即被新玩家占用
+  const rejoined = await join(ROOM_CODE, waiting.repo)
+  assert.equal(rejoined.room.playerIds.length, 2)
+
+  const playing = await newRoom()
+  await startGame(ROOM_CODE, makeAi(), playing.repo)
+  const abandoned = await leave(ROOM_CODE, playing.secondId, playing.repo)
+  assert.equal(abandoned.state, 'finished')
+  assert.equal(abandoned.abandoned, true)
+  assert.equal(abandoned.report, undefined)
+})
+
+test('双方都掉线后可以重新创建房间，不再报房间已满', async () => {
+  const {repo, firstId, secondId} = await newRoom()
+  await startGame(ROOM_CODE, makeAi(), repo)
+  await backdate(repo, firstId, OFFLINE_MS)
+  await backdate(repo, secondId, OFFLINE_MS)
+
+  const created = await create(repo)
+  assert.equal(created.room.state, 'waiting')
+  assert.equal(created.room.playerIds.length, 1, '重开后只剩创建者一人')
+  assert.equal(created.room.abandoned, false)
+  assert.equal(created.room.history.length, 0)
+})
+
+test('心跳按节流窗口落库：窗口内重复轮询不写心跳', async () => {
+  const {repo, firstId} = await newRoom()
+
+  await backdate(repo, firstId, 10_000)
+  const within = (await readRoom(repo)).players[firstId].lastSeenAt
+  await getRoom(ROOM_CODE, repo, firstId)
+  assert.equal((await readRoom(repo)).players[firstId].lastSeenAt, within, '30 秒窗口内不刷新')
+
+  await backdate(repo, firstId, 40_000)
+  await getRoom(ROOM_CODE, repo, firstId)
+  const refreshed = (await readRoom(repo)).players[firstId].lastSeenAt
+  assert.ok(refreshed > Date.now() - 5_000, '超过窗口后刷新为当前时间')
+})
+
+test('提交回合本身算存活证明，不会被判成离线', async () => {
+  const ai = makeAi()
+  const {repo, firstId, secondId} = await newRoom()
+  await startGame(ROOM_CODE, ai, repo)
+  await backdate(repo, firstId, OFFLINE_MS)
+
+  // 心跳先记后回收：提交者即使心跳过期也不应被自己的请求判离线
+  const room = await submitTurn(ROOM_CODE, firstId, {choiceId: 'follow', text: '我还在'}, ai, repo)
+  assert.equal(room.state, 'playing')
+  assert.equal(room.abandoned, false)
+  assert.equal(room.submissions[firstId].text, '我还在')
+  assert.ok(room.players[secondId], '对方座位不受影响')
 })

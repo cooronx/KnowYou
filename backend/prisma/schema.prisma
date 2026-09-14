@@ -35,6 +35,8 @@ model Room {
   endingReason String    @default("")
   aiStatus     AiStatus  @default(idle)
   aiError      String    @default("")
+  // 一方掉线或主动退出导致本局提前结束：终局不生成报告，历史可能残缺
+  abandoned    Boolean   @default(false)
 
   // 本局绑定的剧本大纲快照，开局时写入，保证一局内不随种子缓存变化
   outline Json?
@@ -123,6 +125,8 @@ model Player {
   role     PlayerRole
   // 座位号保持 Room.playerIds 的加入顺序，回合结算依赖这个顺序
   seat     Int
+  // 在线心跳时间戳，由轮询按节流窗口刷新；超时视为离线并回收座位
+  lastSeenAt DateTime @default(now())
 
   room Room @relation(fields: [roomCode], references: [code], onDelete: Cascade)
 

@@ -41,7 +41,8 @@ export type Room = {
   code: string
   state: 'waiting' | 'playing' | 'finished'
   playerIds: string[]
-  players: Record<string, {name: string; role: PlayerRole}>
+  // lastSeenAt 是后端心跳写入的 epoch ms
+  players: Record<string, {name: string; role: PlayerRole; lastSeenAt: number}>
   // 后端开局绑定的剧本大纲快照；旧数据缺失时回退到本地演示剧本
   outline?: StoryOutline
   round: number
@@ -54,6 +55,8 @@ export type Room = {
   endingReason: string
   aiStatus: 'idle' | 'pending' | 'error'
   aiError: string
+  // 一方掉线或退出导致本局提前结束，此时没有报告
+  abandoned: boolean
   report?: Report
 }
 

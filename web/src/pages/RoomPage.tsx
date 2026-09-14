@@ -9,10 +9,12 @@ export default function RoomPage({
   code,
   playerId,
   onReport,
+  onExit,
 }: {
   code: string
   playerId: string
   onReport: () => void
+  onExit: () => void
 }) {
   const forceDemo = new URLSearchParams(window.location.search).get('demo') === '1'
 
@@ -33,7 +35,8 @@ export default function RoomPage({
       return
     }
     try {
-      setRoom(await api.getRoom(code))
+      // 轮询同时充当在线心跳，服务端据此回收离线座位
+      setRoom(await api.getRoom(code, playerId))
       setDemo(false)
     } catch (caught) {
       // 后端未连接（网络错误或代理 5xx）时退回本地演示数据，保证页面可预览
@@ -45,7 +48,7 @@ export default function RoomPage({
         setError(caught instanceof Error ? caught.message : '加载失败')
       }
     }
-  }, [code, forceDemo])
+  }, [code, playerId, forceDemo])
 
   useEffect(() => {
     void load()
@@ -410,14 +413,30 @@ export default function RoomPage({
             {room.state === 'finished' && (
               <section className="rounded-lg bg-brand-navy p-8 text-white sm:p-10">
                 <p className="font-mono text-micro uppercase tracking-[0.18em] text-brand-coral">The End</p>
-                <h2 className="mt-4 font-display text-heading-card">{room.endingReason || '故事已经收束。'}</h2>
-                <p className="mt-4 max-w-xl text-body text-white/70">
-                  你们的每一次选择都已记录，接下来生成属于你们的同一份认识报告。
-                </p>
-                <Button className="mt-7" variant="inverse" onClick={onReport}>
-                  查看共同总结
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
+                <h2 className="mt-4 font-display text-heading-card">
+                  {room.abandoned ? '本局因一方离开已结束。' : room.endingReason || '故事已经收束。'}
+                </h2>
+                {room.abandoned ? (
+                  <>
+                    <p className="mt-4 max-w-xl text-body text-white/70">
+                      故事没有走到终局，这一局不生成认识报告。回到首页即可重新创建房间，再邀请对方开一局。
+                    </p>
+                    <Button className="mt-7" variant="inverse" onClick={onExit}>
+                      回首页重开一局
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <p className="mt-4 max-w-xl text-body text-white/70">
+                      你们的每一次选择都已记录，接下来生成属于你们的同一份认识报告。
+                    </p>
+                    <Button className="mt-7" variant="inverse" onClick={onReport}>
+                      查看共同总结
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
               </section>
             )}
           </div>

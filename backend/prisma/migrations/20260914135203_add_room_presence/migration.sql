@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "Room" ADD COLUMN     "abandoned" BOOLEAN NOT NULL DEFAULT false;
+
+-- AlterTable
+ALTER TABLE "Player" ADD COLUMN     "lastSeenAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;

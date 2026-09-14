@@ -1,5 +1,6 @@
 import {useCallback, useEffect, useState} from 'react'
 import {SiteLayout} from './components/site/SiteLayout'
+import {api} from './lib/api'
 import LandingPage from './pages/LandingPage'
 import EntryPage from './pages/EntryPage'
 import RoomPage from './pages/RoomPage'
@@ -36,9 +37,11 @@ export default function App() {
   }, [])
 
   const exitRoom = useCallback(() => {
+    // 立刻释放座位，不必等心跳超时；失败不阻塞退出，超时回收会兜底
+    if (roomCode && playerId) void api.leaveRoom(roomCode, playerId).catch(() => undefined)
     clearRoom()
     setView('landing')
-  }, [clearRoom])
+  }, [clearRoom, roomCode, playerId])
 
   const inGame = view === 'room' || view === 'report'
 
@@ -53,7 +56,12 @@ export default function App() {
       {view === 'landing' && <LandingPage onStart={() => setView('entry')} />}
       {view === 'entry' && <EntryPage onEnter={enterRoom} />}
       {view === 'room' && roomCode && (
-        <RoomPage code={roomCode} playerId={playerId} onReport={() => setView('report')} />
+        <RoomPage
+          code={roomCode}
+          playerId={playerId}
+          onReport={() => setView('report')}
+          onExit={exitRoom}
+        />
       )}
       {view === 'report' && roomCode && (
         <ReportPage

@@ -8,7 +8,17 @@ import {PrismaPg} from '@prisma/adapter-pg'
 import {PrismaClient} from '@prisma/client'
 import {createPrismaRoomRepository} from '../src/room-repository-prisma.ts'
 import type {GameAi, SceneResult} from '../src/room-types.ts'
-import {MAX_ROUNDS, ROOM_CODE, create, getRoom, join, retryAi, startGame, submitTurn} from '../src/room-store.ts'
+import {
+  MAX_ROUNDS,
+  ROOM_CODE,
+  create,
+  getRoom,
+  join,
+  leave,
+  retryAi,
+  startGame,
+  submitTurn,
+} from '../src/room-store.ts'
 
 const connectionString = process.env.DATABASE_URL?.trim()
 
@@ -183,5 +193,82 @@ test('Prisma 仓储集成测试', {skip: connectionString ? false : '未设置 D
     assert.equal(restarted.room.playerIds.length, 1)
     const storedTurns = await prisma.turn.count({where: {roomCode: ROOM_CODE}})
     assert.equal(storedTurns, 0, '重开后旧回合已被级联删除')
+  })
+
+  await t.test('座位回收与压缩不违反 (roomCode, seat) 唯一约束', async () => {
+    await reset()
+    const first = await create(repo)
+    const second = await join(ROOM_CODE, repo)
+    const seatsBefore = await prisma.player.findMany({
+      where: {roomCode: ROOM_CODE},
+      orderBy: {seat: 'asc'},
+      select: {id: true, seat: true},
+    })
+    assert.deepEqual(
+      seatsBefore.map((player) => player.seat),
+      [0, 1],
+    )
+
+    // 让 0 号座位离线：下一次 join 会在同一个事务里删除它、把 1 号压到 0、再建新玩家。
+    // 三步顺序若写错就会撞上 @@unique([roomCode, seat])，这条只有真库能验出来
+    await repo.withLock(ROOM_CODE, (room) => {
+      room.players[first.playerId].lastSeenAt = Date.now() - 6 * 60_000
+    })
+
+    const third = await join(ROOM_CODE, repo)
+    assert.equal(third.room.playerIds.length, 2)
+    assert.equal(third.room.players[first.playerId], undefined, '离线玩家已被删除')
+
+    const seatsAfter = await prisma.player.findMany({
+      where: {roomCode: ROOM_CODE},
+      orderBy: {seat: 'asc'},
+      select: {id: true, seat: true},
+    })
+    assert.deepEqual(
+      seatsAfter.map((player) => player.seat),
+      [0, 1],
+      '压缩后座位仍是连续的 0/1',
+    )
+    // 留下的玩家被压到 0 号，新玩家接在 1 号
+    assert.equal(seatsAfter[0].id, second.playerId)
+    assert.equal(seatsAfter[1].id, third.playerId)
+    // seat 顺序决定回合结算顺序，必须与 playerIds 一致
+    assert.deepEqual(third.room.playerIds, [second.playerId, third.playerId])
+
+    // 主动退出同样要把座位落库删除
+    const afterLeave = await leave(ROOM_CODE, second.playerId, repo)
+    assert.equal(afterLeave.playerIds.length, 1)
+    const remaining = await prisma.player.findMany({where: {roomCode: ROOM_CODE}, select: {id: true, seat: true}})
+    assert.deepEqual(remaining, [{id: third.playerId, seat: 0}])
+  })
+
+  await t.test('playing 中一方离线：本局标记为中途结束且不生成报告', async () => {
+    await reset()
+    const ai = makeAi()
+    const first = await create(repo)
+    const second = await join(ROOM_CODE, repo)
+    await startGame(ROOM_CODE, ai, repo)
+
+    await repo.withLock(ROOM_CODE, (room) => {
+      room.players[second.playerId].lastSeenAt = Date.now() - 6 * 60_000
+    })
+
+    const room = await getRoom(ROOM_CODE, repo, first.playerId)
+    assert.ok(room)
+    assert.equal(room.state, 'finished')
+    assert.equal(room.abandoned, true)
+    assert.equal(room.report, undefined)
+
+    // abandoned 必须落库，重新读也应保持
+    const stored = await getRoom(ROOM_CODE, repo)
+    assert.equal(stored?.abandoned, true)
+    const reports = await prisma.report.count({where: {roomCode: ROOM_CODE}})
+    assert.equal(reports, 0, '中途结束的局不写报告')
+
+    // 房间可以重开一局，abandoned 被重置
+    const restarted = await create(repo)
+    assert.equal(restarted.room.state, 'waiting')
+    assert.equal(restarted.room.abandoned, false)
+    assert.equal(restarted.room.playerIds.length, 1)
   })
 })

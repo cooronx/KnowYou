@@ -60,8 +60,8 @@ export const mockRoom: Room = {
   state: 'playing',
   playerIds: ['p1', 'p2'],
   players: {
-    p1: {name: '你', role: 'a'},
-    p2: {name: 'TA', role: 'b'},
+    p1: {name: '你', role: 'a', lastSeenAt: Date.now()},
+    p2: {name: 'TA', role: 'b', lastSeenAt: Date.now()},
   },
   round: 3,
   scene: '暴雨夜，桥的另一端',
@@ -77,6 +77,7 @@ export const mockRoom: Room = {
   endingReason: '',
   aiStatus: 'idle',
   aiError: '',
+  abandoned: false,
 }
 
 export const mockReport: Report = {
