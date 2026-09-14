@@ -7,6 +7,11 @@ const REQUEST_TIMEOUT_MS = 35_000
 
 type ChatMessage = {role: 'system' | 'user'; content: string}
 
+/** 后台任务在未配置 AI 时应跳过而非反复失败 */
+export function isAiConfigured(): boolean {
+  return Boolean(process.env.OPENAI_API_KEY?.trim())
+}
+
 function aiConfig() {
   const apiKey = process.env.OPENAI_API_KEY?.trim()
   if (!apiKey) throw new Error('AI 未配置：请在 .env.local 中设置 OPENAI_API_KEY')
