@@ -4,13 +4,6 @@ import {Button} from '@/components/ui/button'
 import {api} from '@/lib/api'
 import type {SessionUser} from '@/types'
 
-const NAV_LINKS = [
-  {href: '#how', label: '怎么玩'},
-  {href: '#room', label: '剧本间'},
-  {href: '#report', label: '认识报告'},
-  {href: '#sources', label: '内容来源'},
-]
-
 export function SiteNav({
   inGame,
   roomCode,
@@ -53,18 +46,10 @@ export function SiteNav({
           </span>
         </button>
 
-        {inGame ? (
+        {inGame && (
           <span className="hidden font-mono text-micro uppercase tracking-[0.18em] text-ink-soft sm:block">
             Room {roomCode}
           </span>
-        ) : (
-          <nav className="hidden items-center gap-8 lg:flex">
-            {NAV_LINKS.map((link) => (
-              <a key={link.href} href={link.href} className="text-caption text-ink-soft transition-colors hover:text-ink">
-                {link.label}
-              </a>
-            ))}
-          </nav>
         )}
 
         <div className="hidden items-center gap-5 lg:flex">
@@ -108,22 +93,15 @@ export function SiteNav({
                 退出房间
               </Button>
             ) : (
-              <>
-                {NAV_LINKS.map((link) => (
-                  <a key={link.href} href={link.href} onClick={() => setOpen(false)} className="text-body text-ink-soft">
-                    {link.label}
-                  </a>
-                ))}
-                <Button
-                  className="w-fit"
-                  onClick={() => {
-                    setOpen(false)
-                    onStart()
-                  }}
-                >
-                  开始一局
-                </Button>
-              </>
+              <Button
+                className="w-fit"
+                onClick={() => {
+                  setOpen(false)
+                  onStart()
+                }}
+              >
+                开始一局
+              </Button>
             )}
           </div>
         </div>

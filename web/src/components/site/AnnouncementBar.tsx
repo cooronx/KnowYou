@@ -9,10 +9,7 @@ export function AnnouncementBar() {
     <div className="relative bg-brand-black text-white">
       <div className="ky-shell flex h-9 items-center justify-center">
         <p className="text-micro">
-          知乎黑客松 2026 · 校园新锐季　
-          <a href="#how" className="underline decoration-white/50 underline-offset-2 hover:decoration-white">
-            了解 KnowYou 怎么玩
-          </a>
+          知乎黑客松 2026 · 校园新锐季　KnowYou 游客演示版
         </p>
         <button
           type="button"

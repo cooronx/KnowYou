@@ -1,14 +1,5 @@
 import type {Room, Report, StoryEntry, TurnRecord} from '@/types'
 
-export const landingSteps = [
-  {index: '01', phase: '入口', title: '加入剧本间', detail: '输入房间码，或邀请一个朋友。'},
-  {index: '02', phase: '开场', title: '领取角色卡', detail: 'AI 根据故事与口味生成共同处境。'},
-  {index: '03', phase: '回合', title: '一起做选择', detail: '行动、投票，镜像猜 TA 的决定。'},
-  {index: '04', phase: '终局', title: '读认识报告', detail: '从具体证据里，看见共识与差异。'},
-]
-
-export const trustSources = ['知乎故事', '知乎创作', '知乎关注', '知乎收藏']
-
 export const demoRoomPreview = {
   code: 'KY-2048',
   round: '02 / 04',
@@ -26,13 +17,6 @@ export const demoRoomPreview = {
   ],
   timer: '180s',
 }
-
-export const demoReportPreview = [
-  {title: '你们的共识 × 03', body: '都愿意为重要的人承担不确定性。', evidence: '第 2 回合，双方选择「先救人」。'},
-  {title: '你们的差异 × 02', body: '你更快做决定，TA 更习惯先确认信息。', evidence: '第 1、3 回合的分支选择。'},
-  {title: '一个互补点', body: '冲动与谨慎组成了更完整的行动方案。', evidence: ''},
-  {title: '下次可以聊', body: '如果没有时间限制，你会怎么选？', evidence: ''},
-]
 
 const firstRoundEntries: StoryEntry[] = [
   {
