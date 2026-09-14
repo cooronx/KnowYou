@@ -8,10 +8,13 @@ import {PrismaPg} from '@prisma/adapter-pg'
 import {PrismaClient} from '@prisma/client'
 import {createPrismaRoomRepository} from '../src/room-repository-prisma.ts'
 import type {GameAi, SceneResult} from '../src/room-types.ts'
+import {defaultStory} from '../src/story.ts'
 import {
+  BOT_NAME,
   MAX_ROUNDS,
   ROOM_CODE,
   create,
+  createDemo,
   getRoom,
   join,
   leave,
@@ -270,5 +273,34 @@ test('Prisma 仓储集成测试', {skip: connectionString ? false : '未设置 D
     assert.equal(restarted.room.state, 'waiting')
     assert.equal(restarted.room.abandoned, false)
     assert.equal(restarted.room.playerIds.length, 1)
+  })
+
+  await t.test('Demo 开局：虚拟对手落库，重开替换玩家不撞座位约束', async () => {
+    await reset()
+    const ai = makeAi()
+    const started = await createDemo(repo, ai, defaultStory)
+    assert.equal(started.room.state, 'playing')
+    assert.equal(started.room.playerIds.length, 2)
+    const botId = started.room.playerIds.find((id) => id !== started.playerId)
+    assert.ok(botId)
+    assert.equal(started.room.players[botId].name, BOT_NAME)
+
+    let room = started.room
+    while (room.state === 'playing') {
+      room = await submitTurn(ROOM_CODE, started.playerId, {choiceId: room.choices[0].id, text: '继续'}, ai, repo)
+    }
+    assert.equal(room.state, 'finished')
+    assert.ok(room.report)
+
+    // 结束后立刻重开：旧玩家（含虚拟对手）必须被清理，新座位不能冲突
+    const again = await createDemo(repo, ai, defaultStory)
+    assert.equal(again.room.state, 'playing')
+    assert.equal(again.room.round, 1)
+    assert.equal(again.room.report, undefined)
+    const players = await prisma.player.findMany({where: {roomCode: ROOM_CODE}, orderBy: {seat: 'asc'}})
+    assert.equal(players.length, 2)
+    assert.deepEqual(players.map((player) => player.seat), [0, 1])
+    const reports = await prisma.report.count({where: {roomCode: ROOM_CODE}})
+    assert.equal(reports, 0, '重开后旧总结被清除')
   })
 })

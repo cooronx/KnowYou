@@ -5,9 +5,11 @@ import {createMemoryRoomRepository} from '../src/room-repository-memory.ts'
 import type {GameAi, SceneResult} from '../src/room-types.ts'
 import {defaultStory, type StoryOutline} from '../src/story.ts'
 import {
+  BOT_NAME,
   MAX_ROUNDS,
   ROOM_CODE,
   create,
+  createDemo,
   getRoom,
   join,
   leave,
@@ -346,6 +348,55 @@ test('心跳按节流窗口落库：窗口内重复轮询不写心跳', async ()
   await getRoom(ROOM_CODE, repo, firstId)
   const refreshed = (await readRoom(repo)).players[firstId].lastSeenAt
   assert.ok(refreshed > Date.now() - 5_000, '超过窗口后刷新为当前时间')
+})
+
+test('Demo 单人局：虚拟对手自动随机出招，结束后生成模板报告', async () => {
+  const ai = makeAi()
+  const repo = createMemoryRoomRepository()
+  const started = await createDemo(repo, ai, defaultStory)
+
+  assert.equal(started.room.state, 'playing')
+  assert.equal(started.room.playerIds.length, 2)
+  const botId = started.room.playerIds.find((id) => id !== started.playerId)
+  assert.ok(botId, '房间应当包含一名虚拟对手')
+  assert.equal(started.room.players[botId].name, BOT_NAME)
+
+  // 虚拟对手没有心跳，也不应被当成离线回收掉本局
+  await backdate(repo, botId, OFFLINE_MS)
+  const alive = await getRoom(ROOM_CODE, repo, started.playerId)
+  assert.equal(alive?.state, 'playing')
+  assert.equal(alive?.abandoned, false)
+
+  let room = await getRoom(ROOM_CODE, repo, started.playerId)
+  while (room && room.state === 'playing') {
+    room = await submitTurn(ROOM_CODE, started.playerId, {choiceId: room.choices[0].id, text: '继续'}, ai, repo)
+  }
+
+  assert.equal(room?.state, 'finished')
+  assert.ok(room?.report)
+  assert.equal(room.report.common.length, 3)
+  assert.equal(room.report.differences.length, 2)
+  assert.equal(room.report.topics.length, 3)
+  assert.equal(room.history.length, MAX_ROUNDS)
+  assert.equal(room.history[0].entries.length, 2, '每回合都包含虚拟对手的提交')
+})
+
+test('Demo 重新开局会清空上一局残留', async () => {
+  const ai = makeAi()
+  const repo = createMemoryRoomRepository()
+  let started = await createDemo(repo, ai, defaultStory)
+  let room = started.room
+  while (room.state === 'playing') {
+    room = await submitTurn(ROOM_CODE, started.playerId, {choiceId: room.choices[0].id, text: '继续'}, ai, repo)
+  }
+
+  started = await createDemo(repo, ai, defaultStory)
+  assert.equal(started.room.state, 'playing')
+  assert.equal(started.room.round, 1)
+  assert.equal(started.room.history.length, 0)
+  assert.equal(started.room.report, undefined)
+  assert.equal(started.room.playerIds.length, 2)
+  assert.ok(started.room.playerIds.includes(started.playerId))
 })
 
 test('提交回合本身算存活证明，不会被判成离线', async () => {

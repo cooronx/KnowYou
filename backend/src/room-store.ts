@@ -1,3 +1,4 @@
+import {buildDemoReport} from './demo-report.ts'
 import type {RoomRepository} from './room-repository.ts'
 import {
   type AdvanceInput,
@@ -18,11 +19,21 @@ const OFFLINE_TIMEOUT_MS = 5 * 60_000
 /** 心跳落库的节流窗口：前端 1.5 秒轮询一次，不能每次都去抢房间行锁 */
 const HEARTBEAT_WRITE_INTERVAL_MS = 30_000
 
+/** Demo 虚拟对手：id 带固定前缀，用来把它和真实玩家区分开（无需额外的数据库字段） */
+const BOT_ID_PREFIX = 'bot-'
+export const BOT_NAME = '虚拟对手'
+
+function isBotPlayer(playerId: string): boolean {
+  return playerId.startsWith(BOT_ID_PREFIX)
+}
+
 function snapshot(room: Room): Room {
   return structuredClone(room)
 }
 
 function isStale(room: Room, playerId: string, now: number): boolean {
+  // 虚拟对手不会上线心跳，不能按离线回收，否则一局进行到一半就会被判结束
+  if (isBotPlayer(playerId)) return false
   return now - room.players[playerId].lastSeenAt > OFFLINE_TIMEOUT_MS
 }
 
@@ -153,6 +164,52 @@ export async function create(repo: RoomRepository): Promise<{room: Room; playerI
   return join(ROOM_CODE, repo)
 }
 
+/** 强制把房间清成全新一局，不受上一局残留状态影响 */
+function resetRoom(room: Room, outline: StoryOutline): void {
+  room.state = 'waiting'
+  room.outline = outline
+  room.round = 0
+  room.narration = ''
+  room.scene = ''
+  room.choices = []
+  room.submissions = {}
+  room.history = []
+  room.isEnding = false
+  room.endingReason = ''
+  room.aiStatus = 'idle'
+  room.aiError = ''
+  room.abandoned = false
+  room.report = undefined
+  room.playerIds = []
+  room.players = {}
+}
+
+/**
+ * Demo 单人开局：真实玩家扮演角色 a，系统补一个随机出招的虚拟对手扮演角色 b，
+ * 随后直接进入 playing。因为不涉及匹配和座位回收，可以无条件重置房间。
+ */
+export async function createDemo(
+  repo: RoomRepository,
+  ai: GameAi,
+  outline: StoryOutline,
+): Promise<{room: Room; playerId: string}> {
+  await repo.ensureRoom(ROOM_CODE)
+  const playerId = await repo.withLock(ROOM_CODE, (room) => {
+    resetRoom(room, outline)
+    const now = Date.now()
+    const humanId = crypto.randomUUID()
+    const botId = `${BOT_ID_PREFIX}${crypto.randomUUID()}`
+    room.playerIds = [humanId, botId]
+    room.players = {
+      [humanId]: {name: '你', role: 'a', lastSeenAt: now},
+      [botId]: {name: BOT_NAME, role: 'b', lastSeenAt: now},
+    }
+    return humanId
+  })
+  const room = await startGame(ROOM_CODE, ai, repo, outline)
+  return {room, playerId}
+}
+
 function applyScene(room: Room, scene: SceneResult): void {
   room.narration = scene.narration
   room.scene = scene.scene
@@ -177,6 +234,16 @@ function collectEntries(room: Room): StoryEntry[] {
         text: submission.text,
       }
     })
+}
+
+/** Demo 里虚拟对手在真人提交后随机选一个当前选项，直接替他提交 */
+function autoSubmitBot(room: Room): void {
+  if (room.choices.length === 0) return
+  for (const playerId of room.playerIds) {
+    if (!isBotPlayer(playerId) || room.submissions[playerId]) continue
+    const choice = room.choices[Math.floor(Math.random() * room.choices.length)]
+    room.submissions[playerId] = {choiceId: choice.id, text: ''}
+  }
 }
 
 /** 抢占 AI 调用权：成功返回 true，已有请求在跑返回 false */
@@ -291,7 +358,10 @@ async function advance(code: string, ai: GameAi, repo: RoomRepository): Promise<
 async function runReport(code: string, ai: GameAi, repo: RoomRepository): Promise<Room> {
   const room = await currentRoom(code, repo)
   try {
-    const report = await ai.summarize({outline: room.outline, history: room.history})
+    // Demo 局里是虚拟对手，直接用随机模板，既不占用 AI 也保证展示稳定
+    const report = room.playerIds.some(isBotPlayer)
+      ? buildDemoReport(room)
+      : await ai.summarize({outline: room.outline, history: room.history})
     return await repo.withLock(code, (room) => {
       room.report = report
       room.aiStatus = 'idle'
@@ -332,6 +402,8 @@ export async function submitTurn(
     const text = (submission.text ?? '').trim()
     if (text.length > 120) throw new Error('行动文字不能超过 120 字')
     room.submissions[playerId] = {choiceId: choice.id, text}
+    // 真人提交后立刻让虚拟对手随机出招，这样一次请求就能推进到下一幕
+    autoSubmitBot(room)
     return Object.keys(room.submissions).length === 2
   })
   if (!bothSubmitted) return currentRoom(code, repo)

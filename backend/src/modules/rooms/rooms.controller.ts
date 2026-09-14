@@ -33,6 +33,18 @@ export class RoomsController {
     }
   }
 
+  /** Demo 单人开局：选定剧本后由系统补一个随机出招的虚拟对手 */
+  @Post('demo')
+  async createDemo(@Body() body: StartBody): Promise<{code: string; playerId: string}> {
+    try {
+      const workId = typeof body?.workId === 'string' ? body.workId : undefined
+      const {room, playerId} = await this.rooms.createDemo(workId)
+      return {code: room.code, playerId}
+    } catch (error) {
+      throw new BadRequestException({error: errorMessage(error, '开始失败')})
+    }
+  }
+
   /**
    * 读取房间状态。前端每 1.5 秒轮询一次，带上 playerId 时这次读取同时刷新该玩家的在线心跳，
    * 因此这个 GET 带写副作用（服务端按 30 秒节流，不会每次都写库）。

@@ -1,7 +1,7 @@
 import {Inject, Injectable} from '@nestjs/common'
 import type {GameAi, Room, Submission} from '../../room-types.ts'
 import type {RoomRepository} from '../../room-repository.ts'
-import {create, getRoom, join, leave, retryAi, startGame, submitTurn} from '../../room-store.ts'
+import {create, createDemo, getRoom, join, leave, retryAi, startGame, submitTurn} from '../../room-store.ts'
 import {GAME_AI} from '../ai/ai.tokens.ts'
 import {SeedsService} from '../seeds/seeds.service.ts'
 import {ROOM_REPOSITORY} from './rooms.tokens.ts'
@@ -16,6 +16,13 @@ export class RoomsService {
 
   create(): Promise<{room: Room; playerId: string}> {
     return create(this.repo)
+  }
+
+  /** Demo：选定剧本后直接单人开局，系统补一个随机出招的虚拟对手 */
+  async createDemo(workId?: string): Promise<{room: Room; playerId: string}> {
+    const outline = await this.seeds.getOutline(workId)
+    if (!outline) throw new Error('该剧本尚未就绪，请选择其他剧本或稍后再试')
+    return createDemo(this.repo, this.ai, outline)
   }
 
   /** playerId 可选：带上时这次读取同时充当该玩家的在线心跳 */
