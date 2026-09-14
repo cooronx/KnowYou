@@ -1,7 +1,5 @@
 import {useCallback, useEffect, useState} from 'react'
-import {useNavigate, useParams, useSearchParams} from 'react-router-dom'
 import {ArrowUpRight, Loader2, RefreshCw} from 'lucide-react'
-import {AppShell} from '@/components/site/AppShell'
 import {Button} from '@/components/ui/button'
 import {api, isOffline} from '@/lib/api'
 import {demoHistory, mockReport} from '@/lib/mock'
@@ -38,11 +36,8 @@ function ReportBlock({
   )
 }
 
-export default function ReportPage() {
-  const {code = ''} = useParams()
-  const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
-  const forceDemo = searchParams.get('demo') === '1'
+export default function ReportPage({code, onRestart}: {code: string; onRestart: () => void}) {
+  const forceDemo = new URLSearchParams(window.location.search).get('demo') === '1'
 
   const [room, setRoom] = useState<Room | null>(null)
   const [error, setError] = useState('')
@@ -82,11 +77,9 @@ export default function ReportPage() {
 
   if (!room && !demo) {
     return (
-      <AppShell meta={`Report ${code}`}>
-        <div className="ky-shell py-20">
-          <p className="text-body text-ink-soft">{error || '正在加载报告…'}</p>
-        </div>
-      </AppShell>
+      <div className="ky-shell py-20">
+        <p className="text-body text-ink-soft">{error || '正在加载报告…'}</p>
+      </div>
     )
   }
 
@@ -96,9 +89,8 @@ export default function ReportPage() {
   const failed = !demo && room?.aiStatus === 'error'
 
   return (
-    <AppShell meta={`Report · ${code}`}>
-      <div className="ky-shell py-10 lg:py-14">
-        {demo && (
+    <div className="ky-shell py-10 lg:py-14">
+      {demo && (
           <div className="mb-8 flex flex-wrap items-center gap-3 rounded-sm border border-brand-coral/40 bg-brand-coral/5 px-4 py-3 text-caption text-ink-soft">
             <span className="font-mono text-micro uppercase tracking-[0.14em] text-brand-coral">Demo Data</span>
             当前展示本地演示报告，启动后端并完成一局即可看到真实结论。
@@ -181,17 +173,11 @@ export default function ReportPage() {
             </section>
 
             <div className="mt-12 flex flex-col gap-4 sm:flex-row sm:items-center">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  localStorage.removeItem('playerId')
-                  navigate('/')
-                }}
-              >
+              <Button variant="outline" onClick={onRestart}>
                 再来一局
               </Button>
               <a
-                href="/#report"
+                href="#report"
                 className="inline-flex items-center gap-2 text-caption text-ink underline decoration-ink-hairline underline-offset-4 hover:decoration-brand-near"
               >
                 导出分享卡（含原作者署名）
@@ -207,6 +193,5 @@ export default function ReportPage() {
           </p>
         )}
       </div>
-    </AppShell>
   )
 }

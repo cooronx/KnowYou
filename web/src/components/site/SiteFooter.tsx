@@ -1,34 +1,33 @@
 import {ArrowRight} from 'lucide-react'
-import {Link} from 'react-router-dom'
 
 const COLUMNS = [
   {
     title: '产品',
     links: [
-      {label: '怎么玩', href: '/#how'},
-      {label: '剧本间', href: '/#room'},
-      {label: '认识报告', href: '/#report'},
+      {label: '怎么玩', href: '#how'},
+      {label: '剧本间', href: '#room'},
+      {label: '认识报告', href: '#report'},
     ],
   },
   {
     title: '内容来源',
     links: [
-      {label: '知乎故事', href: '/#sources'},
-      {label: '知乎创作', href: '/#sources'},
-      {label: '知乎收藏', href: '/#sources'},
+      {label: '知乎故事', href: '#sources'},
+      {label: '知乎创作', href: '#sources'},
+      {label: '知乎收藏', href: '#sources'},
     ],
   },
   {
     title: '关于',
     links: [
-      {label: '知乎黑客松 2026', href: '/'},
-      {label: '隐私说明', href: '/'},
-      {label: '内容安全', href: '/'},
+      {label: '知乎黑客松 2026', href: '#sources'},
+      {label: '隐私说明', href: '#sources'},
+      {label: '内容安全', href: '#sources'},
     ],
   },
 ]
 
-export function SiteFooter() {
+export function SiteFooter({onStart}: {onStart: () => void}) {
   return (
     <footer className="bg-brand-near text-white">
       <div className="ky-shell grid gap-14 py-16 lg:grid-cols-[1.1fr_1fr] lg:py-20">
@@ -69,9 +68,13 @@ export function SiteFooter() {
           <span>KnowYou · 基于知乎故事的二次演绎</span>
           <span className="flex items-center gap-4">
             <span>故事原作者署名</span>
-            <Link to="/play" className="underline decoration-white/30 underline-offset-4 hover:text-white hover:decoration-white">
+            <button
+              type="button"
+              onClick={onStart}
+              className="underline decoration-white/30 underline-offset-4 hover:text-white hover:decoration-white"
+            >
               分享卡 ↗
-            </Link>
+            </button>
           </span>
         </div>
       </div>

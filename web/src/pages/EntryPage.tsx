@@ -1,5 +1,4 @@
 import {useEffect, useState} from 'react'
-import {useNavigate, useSearchParams} from 'react-router-dom'
 import {ArrowUpRight, Loader2} from 'lucide-react'
 import {Button} from '@/components/ui/button'
 import {api} from '@/lib/api'
@@ -17,16 +16,14 @@ const POINTS = [
   '终局生成同一份认识报告，每条结论都引用具体回合。',
 ]
 
-export default function EntryPage() {
-  const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
+export default function EntryPage({onEnter}: {onEnter: (code: string, playerId: string) => void}) {
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState<'create' | 'join' | 'logout' | null>(null)
   const [error, setError] = useState('')
   const [user, setUser] = useState<SessionUser | null>(null)
   const [loadingSession, setLoadingSession] = useState(true)
 
-  const loginReason = searchParams.get('login')
+  const loginReason = new URLSearchParams(window.location.search).get('login')
 
   useEffect(() => {
     let active = true
@@ -49,8 +46,7 @@ export default function EntryPage() {
     setError('')
     try {
       const data = await api.createRoom()
-      localStorage.setItem('playerId', data.playerId)
-      navigate(`/room/${data.code}`)
+      onEnter(data.code, data.playerId)
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : '创建房间失败')
     } finally {
@@ -68,8 +64,7 @@ export default function EntryPage() {
     setError('')
     try {
       const data = await api.joinRoom(value)
-      localStorage.setItem('playerId', data.playerId)
-      navigate(`/room/${data.code}`)
+      onEnter(data.code, data.playerId)
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : '加入房间失败')
     } finally {

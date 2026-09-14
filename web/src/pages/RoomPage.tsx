@@ -1,7 +1,5 @@
 import {useCallback, useEffect, useMemo, useState, type ReactNode} from 'react'
-import {useNavigate, useParams, useSearchParams} from 'react-router-dom'
 import {ArrowRight, Check, Clock, Loader2, RefreshCw, Users} from 'lucide-react'
-import {AppShell} from '@/components/site/AppShell'
 import {Button} from '@/components/ui/button'
 import {api, isOffline} from '@/lib/api'
 import {mockRoom} from '@/lib/mock'
@@ -16,14 +14,18 @@ function StoryCard({title, children}: {title: string; children: ReactNode}) {
   )
 }
 
-export default function RoomPage() {
-  const {code = ''} = useParams()
-  const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
-  const forceDemo = searchParams.get('demo') === '1'
+export default function RoomPage({
+  code,
+  playerId,
+  onReport,
+}: {
+  code: string
+  playerId: string
+  onReport: () => void
+}) {
+  const forceDemo = new URLSearchParams(window.location.search).get('demo') === '1'
 
   const [room, setRoom] = useState<Room | null>(null)
-  const [playerId, setPlayerId] = useState('')
   const [choiceId, setChoiceId] = useState('')
   const [text, setText] = useState('')
   const [error, setError] = useState('')
@@ -51,7 +53,6 @@ export default function RoomPage() {
   }, [code, forceDemo])
 
   useEffect(() => {
-    setPlayerId(localStorage.getItem('playerId') ?? '')
     void load()
     if (forceDemo) return
     const timer = setInterval(() => {
@@ -83,11 +84,9 @@ export default function RoomPage() {
 
   if (!room) {
     return (
-      <AppShell meta={`Room ${code}`}>
-        <div className="ky-shell py-20">
-          <p className="text-body text-ink-soft">{error || '正在加载房间…'}</p>
-        </div>
-      </AppShell>
+      <div className="ky-shell py-20">
+        <p className="text-body text-ink-soft">{error || '正在加载房间…'}</p>
+      </div>
     )
   }
 
@@ -99,8 +98,7 @@ export default function RoomPage() {
   const opponentSubmitted = opponentId ? Boolean(room.submissions[opponentId]) : false
 
   return (
-    <AppShell meta={`Room ${room.code} · Round ${room.round}/${MAX_ROUNDS}`}>
-      <div className="ky-shell py-10 lg:py-14">
+    <div className="ky-shell py-10 lg:py-14">
         {demo && (
           <div className="mb-8 flex flex-wrap items-center gap-3 rounded-sm border border-brand-coral/40 bg-brand-coral/5 px-4 py-3 text-caption text-ink-soft">
             <span className="font-mono text-micro uppercase tracking-[0.14em] text-brand-coral">Demo Data</span>
@@ -311,7 +309,7 @@ export default function RoomPage() {
                 <p className="mt-4 max-w-xl text-body text-white/70">
                   你们的每一次选择都已记录，接下来生成属于你们的同一份认识报告。
                 </p>
-                <Button className="mt-7" variant="inverse" onClick={() => navigate(`/room/${code}/report`)}>
+                <Button className="mt-7" variant="inverse" onClick={onReport}>
                   查看共同总结
                   <ArrowRight className="h-4 w-4" />
                 </Button>
@@ -389,6 +387,5 @@ export default function RoomPage() {
           </aside>
         </div>
       </div>
-    </AppShell>
   )
 }

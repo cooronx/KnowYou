@@ -1,4 +1,3 @@
-import {Link} from 'react-router-dom'
 import {
   ArrowUpRight,
   BookOpen,
@@ -107,7 +106,7 @@ function StoryCard() {
   )
 }
 
-export default function LandingPage() {
+export default function LandingPage({onStart}: {onStart: () => void}) {
   return (
     <>
       <section className="ky-shell pb-16 pt-16 text-center lg:pb-24 lg:pt-24">
@@ -121,11 +120,9 @@ export default function LandingPage() {
           两个陌生人进入同一篇知乎故事，在几次共同选择里，看见对方如何面对风险、冲突与靠近。
         </p>
         <div className="mt-9 flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-6">
-          <Button asChild size="lg">
-            <Link to="/play">
-              开始一局 KnowYou
-              <ArrowUpRight className="h-4 w-4" />
-            </Link>
+          <Button size="lg" onClick={onStart}>
+            开始一局 KnowYou
+            <ArrowUpRight className="h-4 w-4" />
           </Button>
           <a
             href="#report"
@@ -300,11 +297,9 @@ export default function LandingPage() {
             一间房、两个人、一篇知乎故事。你在关键处的每一次选择，都会成为报告里的一行证据。
           </p>
           <div className="mt-9">
-            <Button asChild variant="inverse" size="lg">
-              <Link to="/play">
-                开始一局 KnowYou
-                <ArrowUpRight className="h-4 w-4" />
-              </Link>
+            <Button variant="inverse" size="lg" onClick={onStart}>
+              开始一局 KnowYou
+              <ArrowUpRight className="h-4 w-4" />
             </Button>
           </div>
           <p className="mt-5 font-mono text-micro uppercase tracking-[0.16em] text-white/50">
