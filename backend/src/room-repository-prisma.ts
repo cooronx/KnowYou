@@ -10,7 +10,7 @@ import {
   type Submission,
   type TurnRecord,
 } from './room-types.ts'
-import type {PlayerRole} from './story.ts'
+import {defaultStory, type PlayerRole, type StoryOutline} from './story.ts'
 
 type Tx = Prisma.TransactionClient
 
@@ -32,6 +32,7 @@ function toRoom(row: RoomRow): Room {
     state: row.state as RoomState,
     playerIds: row.players.map((player) => player.id),
     players,
+    outline: (row.outline as StoryOutline | null) ?? defaultStory,
     round: row.round,
     narration: row.narration,
     scene: row.scene,
@@ -69,6 +70,7 @@ async function persist(tx: Tx, before: Room, after: Room): Promise<void> {
       endingReason: after.endingReason,
       aiStatus: after.aiStatus,
       aiError: after.aiError,
+      outline: after.outline as unknown as Prisma.InputJsonValue,
       choices: after.choices as unknown as Prisma.InputJsonValue,
       submissions: after.submissions as unknown as Prisma.InputJsonValue,
     },

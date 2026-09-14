@@ -83,6 +83,7 @@ export default function ReportPage({code, onRestart}: {code: string; onRestart: 
     )
   }
 
+  const outline = room?.outline ?? story
   const report = demo ? mockReport : room?.report
   const history = demo ? demoHistory : (room?.history ?? [])
   const pending = !demo && room?.aiStatus === 'pending'
@@ -101,7 +102,7 @@ export default function ReportPage({code, onRestart}: {code: string; onRestart: 
           <p className="ky-eyebrow">05 · Recognition Report</p>
           <h1 className="mt-4 font-display text-heading-section text-ink">认识报告</h1>
           <p className="mt-4 max-w-2xl text-body text-ink-soft">
-            基于《{story.title}》的二次演绎。双方看到同一份报告，每一条结论都引用具体回合里的选择与原话。
+            基于《{outline.title}》的二次演绎。双方看到同一份报告，每一条结论都引用具体回合里的选择与原话。
           </p>
         </header>
 
@@ -153,7 +154,7 @@ export default function ReportPage({code, onRestart}: {code: string; onRestart: 
                     <div>
                       <ul className="grid gap-3">
                         {record.entries.map((entry) => {
-                          const character = story.characters.find((item) => item.id === entry.role)
+                          const character = outline.characters.find((item) => item.id === entry.role)
                           return (
                             <li key={entry.playerId} className="text-caption text-ink">
                               <span className="text-ink-soft">

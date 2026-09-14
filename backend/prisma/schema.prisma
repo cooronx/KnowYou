@@ -36,6 +36,9 @@ model Room {
   aiStatus     AiStatus  @default(idle)
   aiError      String    @default("")
 
+  // 本局绑定的剧本大纲快照，开局时写入，保证一局内不随种子缓存变化
+  outline Json?
+
   // AI 生成的当前可选分支与本回合未结算的提交，结构由 lib/room-store.ts 的 Choice / Submission 决定
   choices     Json @default("[]")
   submissions Json @default("{}")
@@ -46,6 +49,27 @@ model Room {
   players Player[]
   turns   Turn[]
   report  Report?
+}
+
+model Seed {
+  // 知乎内容 work_id 是 int64，全程以 TEXT 存储与传递
+  workId String @id
+
+  title        String   @default("")
+  labels       String[]
+  description  String   @default("")
+  artwork      String   @default("")
+  authorName   String   @default("")
+  authorAvatar String   @default("")
+  introduction String   @default("")
+  content      String   @default("")
+  // 由正文提炼的双人剧本大纲，缺省表示尚未提炼
+  outline Json?
+
+  fetchedAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([fetchedAt])
 }
 
 model User {

@@ -15,6 +15,7 @@ function errorMessage(error: unknown, fallback: string): string {
 }
 
 type TurnBody = {playerId?: unknown; choiceId?: unknown; text?: unknown}
+type StartBody = {workId?: unknown}
 
 @Controller('rooms')
 export class RoomsController {
@@ -48,9 +49,10 @@ export class RoomsController {
   }
 
   @Post(':code/start')
-  async start(@Param('code') code: string): Promise<Room> {
+  async start(@Param('code') code: string, @Body() body: StartBody): Promise<Room> {
     try {
-      return await this.rooms.start(code)
+      const workId = typeof body?.workId === 'string' ? body.workId : undefined
+      return await this.rooms.start(code, workId)
     } catch (error) {
       throw new BadRequestException({error: errorMessage(error, '开始失败')})
     }

@@ -1,4 +1,4 @@
-import type {PlayerRole, StoryOutline} from './story.ts'
+import {defaultStory, type PlayerRole, type StoryOutline} from './story.ts'
 
 export type RoomState = 'waiting' | 'playing' | 'finished'
 export type AiStatus = 'idle' | 'pending' | 'error'
@@ -33,6 +33,8 @@ export type Room = {
   state: RoomState
   playerIds: string[]
   players: Record<string, {name: string; role: PlayerRole}>
+  // 本局绑定的剧本大纲快照，开局时写入，保证一局内稳定
+  outline: StoryOutline
   round: number
   narration: string
   scene: string
@@ -82,6 +84,7 @@ export function freshRoom(code: string): Room {
     state: 'waiting',
     playerIds: [],
     players: {},
+    outline: defaultStory,
     round: 0,
     narration: '',
     scene: '',

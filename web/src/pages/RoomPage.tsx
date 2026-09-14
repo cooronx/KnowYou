@@ -90,9 +90,10 @@ export default function RoomPage({
     )
   }
 
+  const outline = room.outline ?? story
   const submitted = room.submissions[activePlayerId]
   const me = room.players[activePlayerId]
-  const myCharacter = story.characters.find((character) => character.id === me?.role)
+  const myCharacter = outline.characters.find((character) => character.id === me?.role)
   const opponentId = room.playerIds.find((id) => id !== activePlayerId)
   const opponent = opponentId ? room.players[opponentId] : undefined
   const opponentSubmitted = opponentId ? Boolean(room.submissions[opponentId]) : false
@@ -111,7 +112,7 @@ export default function RoomPage({
             <p className="ky-eyebrow">
               {room.state === 'waiting' ? 'Room · Waiting' : room.state === 'playing' ? 'Room · Playing' : 'Room · Finished'}
             </p>
-            <h1 className="mt-4 font-display text-heading-section text-ink">{story.title}</h1>
+            <h1 className="mt-4 font-display text-heading-section text-ink">{outline.title}</h1>
           </div>
           <div className="flex items-center gap-4 font-mono text-micro uppercase tracking-[0.16em] text-ink-muted">
             <span>Code {room.code}</span>
@@ -137,14 +138,14 @@ export default function RoomPage({
                 </section>
 
                 <section className="grid gap-6 sm:grid-cols-2">
-                  <StoryCard title="故事简介">{story.summary}</StoryCard>
-                  <StoryCard title="开场">{story.opening}</StoryCard>
+                  <StoryCard title="故事简介">{outline.summary}</StoryCard>
+                  <StoryCard title="开场">{outline.opening}</StoryCard>
                 </section>
 
                 <section className="border-t border-ink-hairline pt-8">
                   <h2 className="font-display text-heading-feature text-ink">角色卡</h2>
                   <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                    {story.characters.map((character) => {
+                    {outline.characters.map((character) => {
                       const ownerId = room.playerIds.find((id) => room.players[id].role === character.id)
                       return (
                         <div key={character.id} className="rounded-md border border-ink-hairline bg-white p-6">
@@ -176,7 +177,7 @@ export default function RoomPage({
                           <p className="font-mono text-micro uppercase tracking-[0.16em] text-brand-blue">Round {record.round}</p>
                           <ul className="mt-4 grid gap-2">
                             {record.entries.map((entry) => {
-                              const character = story.characters.find((item) => item.id === entry.role)
+                              const character = outline.characters.find((item) => item.id === entry.role)
                               return (
                                 <li key={entry.playerId} className="text-caption text-ink">
                                   <span className="text-ink-soft">
@@ -340,7 +341,7 @@ export default function RoomPage({
               <ul className="mt-4 grid gap-3">
                 {room.playerIds.map((id) => {
                   const player = room.players[id]
-                  const character = story.characters.find((item) => item.id === player.role)
+                  const character = outline.characters.find((item) => item.id === player.role)
                   const done = Boolean(room.submissions[id])
                   return (
                     <li key={id} className="flex items-center justify-between gap-3 text-caption">

@@ -25,11 +25,25 @@ export type Report = {
   topics: string[]
 }
 
+export type StoryOutline = {
+  id: string
+  title: string
+  summary: string
+  tags: string[]
+  opening: string
+  premise: string
+  setting: string
+  characters: StoryCharacter[]
+  endingHint: string
+}
+
 export type Room = {
   code: string
   state: 'waiting' | 'playing' | 'finished'
   playerIds: string[]
   players: Record<string, {name: string; role: PlayerRole}>
+  // 后端开局绑定的剧本大纲快照；旧数据缺失时回退到本地演示剧本
+  outline?: StoryOutline
   round: number
   narration: string
   scene: string

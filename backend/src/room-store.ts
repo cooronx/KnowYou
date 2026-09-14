@@ -7,7 +7,7 @@ import {
   type StoryEntry,
   type Submission,
 } from './room-types.ts'
-import {MAX_ROUNDS, story} from './story.ts'
+import {MAX_ROUNDS, type StoryOutline} from './story.ts'
 
 export const ROOM_CODE = 'DEMO01'
 export {MAX_ROUNDS}
@@ -86,10 +86,13 @@ async function failAi(code: string, repo: RoomRepository, error: unknown): Promi
 }
 
 async function revealOpening(code: string, ai: GameAi, repo: RoomRepository): Promise<Room> {
-  const claimed = await repo.withLock(code, claimAi)
-  if (!claimed) return currentRoom(code, repo)
+  const outline = await repo.withLock(code, (room): StoryOutline | null => {
+    if (!claimAi(room)) return null
+    return room.outline
+  })
+  if (!outline) return currentRoom(code, repo)
   try {
-    const scene = await ai.revealOpening(story)
+    const scene = await ai.revealOpening(outline)
     return await repo.withLock(code, (room) => {
       applyScene(room, {...scene, isEnding: false, endingReason: ''})
       room.aiStatus = 'idle'
@@ -100,12 +103,19 @@ async function revealOpening(code: string, ai: GameAi, repo: RoomRepository): Pr
   }
 }
 
-export async function startGame(code: string, ai: GameAi, repo: RoomRepository): Promise<Room> {
+export async function startGame(
+  code: string,
+  ai: GameAi,
+  repo: RoomRepository,
+  outline?: StoryOutline,
+): Promise<Room> {
   await repo.withLock(code, (room) => {
     // 开场生成失败后重新点击开始：房间已在 playing 但还没有选择，直接重新生成开场
     if (room.state === 'playing' && room.choices.length === 0) return
     if (room.state !== 'waiting') throw new Error('游戏已经开始')
     if (room.playerIds.length !== 2) throw new Error('需要两名玩家才能开始')
+    // 绑定本局剧本快照；未指定时沿用房间默认大纲
+    if (outline) room.outline = outline
     room.state = 'playing'
     room.round = 1
     room.submissions = {}
@@ -122,7 +132,7 @@ async function advance(code: string, ai: GameAi, repo: RoomRepository): Promise<
     if (entries.length !== 2) return null
     if (!claimAi(room)) return null
     return {
-      outline: story,
+      outline: room.outline,
       round: room.round,
       maxRounds: MAX_ROUNDS,
       mustEnd: room.round >= MAX_ROUNDS,
@@ -166,9 +176,9 @@ async function advance(code: string, ai: GameAi, repo: RoomRepository): Promise<
 
 /** 调用方已持有 AI 调用权，直接生成总结 */
 async function runReport(code: string, ai: GameAi, repo: RoomRepository): Promise<Room> {
-  const history = (await currentRoom(code, repo)).history
+  const room = await currentRoom(code, repo)
   try {
-    const report = await ai.summarize({outline: story, history})
+    const report = await ai.summarize({outline: room.outline, history: room.history})
     return await repo.withLock(code, (room) => {
       room.report = report
       room.aiStatus = 'idle'

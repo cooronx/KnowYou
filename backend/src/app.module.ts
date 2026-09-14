@@ -5,9 +5,10 @@ import {AuthModule} from './modules/auth/auth.module.ts'
 import {HealthController} from './modules/health/health.controller.ts'
 import {PrismaModule} from './modules/prisma/prisma.module.ts'
 import {RoomsModule} from './modules/rooms/rooms.module.ts'
+import {SeedsModule} from './modules/seeds/seeds.module.ts'
 
 @Module({
-  imports: [ConfigModule.forRoot({isGlobal: true}), PrismaModule, AiModule, RoomsModule, AuthModule],
+  imports: [ConfigModule.forRoot({isGlobal: true}), PrismaModule, AiModule, SeedsModule, RoomsModule, AuthModule],
   controllers: [HealthController],
 })
 export class AppModule {}

@@ -21,7 +21,21 @@ export type StoryOutline = {
   endingHint: string
 }
 
-export const story: StoryOutline = {
+/** 提炼大纲的原料：知乎故事列表元数据 + 详情正文 */
+export type StorySource = {
+  workId: string
+  title: string
+  labels: string[]
+  introduction: string
+  content: string
+}
+
+export interface StoryOutlineAi {
+  extractOutline(source: StorySource): Promise<StoryOutline>
+}
+
+/** 内容接口不可用或种子未指定时的兜底剧本，保证 Demo 始终能开一局 */
+export const defaultStory: StoryOutline = {
   id: 'test-lost-key',
   title: '走廊尽头的钥匙',
   summary: '两名夜班社团成员在旧教学楼寻找一把能打开档案室的钥匙。',

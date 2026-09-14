@@ -3,6 +3,7 @@ import test from 'node:test'
 import type {RoomRepository} from '../src/room-repository.ts'
 import {createMemoryRoomRepository} from '../src/room-repository-memory.ts'
 import type {GameAi, SceneResult} from '../src/room-types.ts'
+import {defaultStory, type StoryOutline} from '../src/story.ts'
 import {
   MAX_ROUNDS,
   ROOM_CODE,
@@ -201,6 +202,39 @@ test('总结失败不阻塞结束状态，重试后补齐报告', async () => {
   assert.ok(retried.report)
   assert.equal(retried.aiStatus, 'idle')
   assert.equal(retried.report.topics.length, 3)
+})
+
+test('开局绑定指定剧本大纲，各阶段 AI 都收到该大纲', async () => {
+  const outline: StoryOutline = {...defaultStory, id: 'custom-seed', title: '自定义本'}
+  const received: string[] = []
+  const base = makeAi()
+  const ai: GameAi = {
+    async revealOpening(value) {
+      received.push(`opening:${value.id}`)
+      return base.revealOpening(value)
+    },
+    async advance(input) {
+      received.push(`advance:${input.outline.id}`)
+      return base.advance(input)
+    },
+    async summarize(input) {
+      received.push(`summary:${input.outline.id}`)
+      return base.summarize(input)
+    },
+  }
+
+  const {repo, firstId, secondId} = await newRoom()
+  let room = await startGame(ROOM_CODE, ai, repo, outline)
+  assert.equal(room.outline.id, 'custom-seed', '房间绑定开局传入的大纲')
+
+  while (room.state === 'playing') {
+    await submitTurn(ROOM_CODE, firstId, {choiceId: room.choices[0].id, text: '继续'}, ai, repo)
+    room = await submitTurn(ROOM_CODE, secondId, {choiceId: room.choices[1].id, text: '继续'}, ai, repo)
+  }
+
+  assert.match(received[0], /^opening:custom-seed$/)
+  assert.ok(received.some((item) => item === 'advance:custom-seed'), '推进阶段收到绑定大纲')
+  assert.ok(received.at(-1) === 'summary:custom-seed', '总结阶段收到绑定大纲')
 })
 
 test('已结束的房间可以重开一局，旧回合与总结被清空', async () => {
